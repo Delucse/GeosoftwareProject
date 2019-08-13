@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title><%= title %></title>
+
+  <meta name="author" content="Luc N."/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+</head>
+
+
+<body>
+
+  <div class="wrapper">
+
+
+    <main role="main" class="container-fluid">
+      <div class="row">
+        <div class="col">
+        </div>
+        <div class="col-lg-5" style="margin-top: 20px; margin-bottom: 44.2px;"><!--20px(normal margin value) + 24.2px(height of the footer)-->
+          <p>Um die Inhalte der Seite einsehen zu können, bedarf es vorab einer Registrierung.
+            Haben Sie sich bereis registriert, können Sie sich <a href="/user/login">hier</a> einloggen.
+          </p>
+
+
+          <form method="POST" action="/user/signup">
+            <label class="labelRegister" for="firtsName">Vorname:</label><br>
+            <input name="firstName" type="text" required style="width: 100%"/><br>
+            <label class="labelRegister" for="lastName">Nachname:</label><br>
+            <input name="lastName" type="text" required style="width: 100%"/><br>
+            <label class="labelRegister" for="email">Email:</label><br>
+            <input name="email" type="email" required style="width: 100%"/><br>
+            <label class="labelRegister" for="username">Benutzername:</label><br>
+            <input name="username" type="text" required style="width: 100%"/><br>
+            <label class="labelRegister" for="password">Passwort:</label><br>
+            <input name="password" type="password" required style="width: 100%"/><br>
+            <label class="labelRegister" for="confirmPassword">Passwort bestätigen:</label><br>
+            <input name="confirmPassword" type="password" required style="width: 100%"/><br><br>
+            <button type="submit">Registrieren</button>
+          </form>
+        </div>
+        <div class="col">
+        </div>
+      </div>
+    </main>
+  </div>
+
+
+</body>
+
+</html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>

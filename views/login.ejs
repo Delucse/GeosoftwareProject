@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title><%= title %></title>
+
+  <meta name="author" content="Luc N."/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+</head>
+
+
+<body>
+
+  <div class="wrapper">
+
+
+    <main role="main" class="container-fluid">
+      <div class="row">
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4" style="margin-top: 20px; margin-bottom: 44.2px;"><!--20px(normal margin value) + 24.2px(height of the footer)-->
+          <p>Um ausgewählte Inhalte der Seite einsehen zu können, bedarf es vorab eines Logins.
+            Sollten Sie sich noch nicht registriert haben, können Sie dies <a href="/user/signup">hier</a> nachholen.
+          </p>
+
+
+          <form method="POST" action="/user/login">
+            <label class="labelRegister" for="username">Benutzername:</label><br>
+            <input name="username" type="text" required style="width: 100%"/><br>
+            <label class="labelRegister" for="password">Passwort:</label><br>
+            <input name="password" type="password" required style="width: 100%"/><br><br>
+            <button type="submit">Anmelden</button>
+          </form>
+        </div>
+        <div class="col-md-4">
+        </div>
+      </div>
+    </main>
+  </div>
+
+
+</body>
+
+</html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>
+
