@@ -1,16 +1,35 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
 
-  <title><%= title %></title>
-  <meta name="author" content="Luc, Lukas, Phil"/>
-  <meta charset="UTF-8">
-  <% include partials/stylesheet.ejs %>
-</head>
-<body>
+    <title><%= title %></title>
+
+    <meta name="author" content="Luc, Phil, Lukas"/>
+    <meta charset="UTF-8">
+
+    <% include partials/stylesheet.ejs %>
+
+  </head>
+
+  <body>
+
     <div class="wrapper">
-         <% include partials/header.ejs %>
-         <% include partials/footer.ejs %>
+
+      <% include partials/header.ejs %>
+
+      <main role="main" class="container-fluid">
+        <div class="row">
+          <h1><%= title %></h1>
+          <p>Welcome to <%= title %></p>
+        </div>
+      </main>
     </div>
-</body>
+
+      <% include partials/footer.ejs %>
+
+  </body>
 </html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>

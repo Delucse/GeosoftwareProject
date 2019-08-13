@@ -48,6 +48,7 @@ app.use('/', express.static(__dirname + '/public'));
 app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist'));
 app.use('/bootstrap', express.static(__dirname + '/node_modules/bootstrap/dist'));
 app.use('/popper', express.static(__dirname + '/node_modules/popper.js/dist'));
+app.use('/open-iconic', express.static(__dirname + '/node_modules/open-iconic/font'));
 
 // body parser middleware
 // parse application/x-www-form-urlencoded
