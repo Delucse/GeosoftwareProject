@@ -1,0 +1,64 @@
+<header>
+  <div>
+    <!-- logo -->
+    <a href="/">
+      <img id="logo" class="img-fluid" src="/images/geosoftware.svg" alt="Geosoftware #10" style="padding-right: 15px; padding-left: 15px; margin-bottom: 1%; margin-top: 1%;">
+    </a>
+
+    <!-- navigation bar -->
+    <nav class="navbar navbar-expand-md bg-dark navbar-dark">
+      <!-- Toggler/collapsibe Button -->
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Navbar links -->
+      <div class="order-1 order-md-2">
+        <ul class="nav navbar-nav flex-row">
+          <% if (typeof(user) !== 'undefined' && user != null) { %>
+            <li class="nav-item " >
+              <a class="nav-link" href='/user/logout' style="padding-right: .5rem; padding-leflt: .5rem;">
+                  <span class="oi oi-account-logout" aria-hidden="true"></span>
+                  <span class="d-none d-sm-inline">Abmelden</span>
+              </a>
+            </li>
+            <li class="nav-item <% if (title == 'Profil') {%> active <% } %>">
+              <a class="nav-link" href="/user/<%= user._id %>" style="padding-right: .5rem; padding-leflt: .5rem;">
+                <span class="oi oi-person" aria-hidden="true"></span>
+                <span class="d-none d-sm-inline"><%= user.firstName.charAt(0).toUpperCase() %><%= user.lastName.charAt(0).toUpperCase() %></span>
+              </a>
+            </li>
+          <% } else { %>
+            <li class="nav-item <% if (title == 'Anmelden') {%> active <% } %>">
+              <a class="nav-link" href='/user/login' style="padding-right: .5rem; padding-leflt: .5rem;">
+                <span class="oi oi-account-login"></span>
+                <span class="d-none d-sm-inline">Anmelden</span>
+              </a>
+            </li>
+            <li class="nav-item <% if (title == 'Registrieren') {%> active <% } %>">
+              <a class="nav-link" href='/user/signup' style="padding-right: .5rem; padding-leflt: .5rem;">
+                <span class="oi oi-people" aria-hidden="true"></span>
+                <span class="d-none d-sm-inline">Registrieren</span>
+              </a>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+
+    <div class="collapse navbar-collapse order-2 order-md-1" id="collapsibleNavbar">
+      <ul class="nav navbar-nav">
+        <li class="nav-item <% if (title == 'Start') {%> active <% } %>">
+          <a class="nav-link" href="/">Start</a>
+        </li>
+        <li class="nav-item <% if (title == 'Routen-Editor') {%> active <% } %>">
+          <a class="nav-link" href="/route/create">Routen-Editor</a>
+        </li>
+        <li class="nav-item <% if (title == 'Verwaltung') {%> active <% } %>">
+          <a class="nav-link" href="/route/manage/<%= user._id %>">Verwaltung</a>
+        </li>
+      </ul>
+      </div>
+
+    </nav>
+  </div>
+</header>

@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const router = express.Router();
+const authorizationCheck = require('../middleware/authorizationCheck');
 
 
 // import user model

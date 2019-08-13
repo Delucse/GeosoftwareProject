@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
+<head>
+
+  <title><%= title %></title>
+  <meta name="author" content="Luc, Lukas, Phil"/>
+  <meta charset="UTF-8">
+  <% include partials/stylesheet.ejs %>
+</head>
+<body>
+    <div class="wrapper">
+         <% include partials/header.ejs %>
+         <% include partials/footer.ejs %>
+    </div>
+</body>
 </html>
