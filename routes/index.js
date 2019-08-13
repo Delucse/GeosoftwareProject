@@ -6,7 +6,10 @@ const authorizationCheck = require('../middleware/authorizationCheck');
 
 /* GET home page. */
 router.get('/', authorizationCheck, (req, res, next) => {
-  res.render('index', { title: 'GeosoftwareProject' });
+  res.render('index', {
+    title: 'GeosoftwareProject',
+    message: req.flash('message')
+    });
 });
 
 module.exports = router;

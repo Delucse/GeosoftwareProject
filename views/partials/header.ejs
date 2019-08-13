@@ -54,7 +54,11 @@
           <a class="nav-link" href="/route/create">Routen-Editor</a>
         </li>
         <li class="nav-item <% if (title == 'Verwaltung') {%> active <% } %>">
-          <a class="nav-link" href="/route/manage/<%= user._id %>">Verwaltung</a>
+          <% if (typeof(user) !== 'undefined' && user != null) { %>
+            <a class="nav-link" href="/route/manage/<%= user._id %>">Verwaltung</a>
+          <% } else { %>
+            <a class="nav-link" href="/route/manage/">Verwaltung</a>
+          <% }  %>
         </li>
       </ul>
       </div>

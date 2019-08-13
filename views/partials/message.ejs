@@ -1,0 +1,36 @@
+<% if (typeof(message) !== 'undefined' && message.length > 0) { %>
+    <div class="col-12" style="margin-top: 20px;">
+  <% for(var i=0; i < message.length; i++) {%>
+    <% if (typeof(message[i].type) !== 'undefined' && message[i].type == 'errorMsg') {%>
+      <% if (typeof(message[i].link) !== 'undefined' && message[i].link) { %>
+        <div class="alert alert-danger">
+          <span class="oi oi-warning" aria-hidden="true"></span>
+          <%= message[i].msg[0] %><a href="<%= message[i].link %>"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+        </div>
+      <% } else {%>
+        <div class="alert alert-danger">
+          <span class="oi oi-warning" aria-hidden="true"></span>
+          <%= message[i].msg %>
+        </div>
+      <% } %>
+    <% } else if (typeof(message[i].type) !== 'undefined' && message[i].type == 'successMsg') {%>
+      <% if (typeof(message[i].link) !== 'undefined' && message[i].link) { %>
+        <div class="alert alert-success">
+          <span class="oi oi-check" aria-hidden="true"></span>
+          <%= message[i].msg[0] %><a href="<%= message[i].link %>"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+        </div>
+      <% } else {%>
+      <div class="alert alert-success">
+        <span class="oi oi-check" aria-hidden="true"></span>
+        <%= message[i].msg %>
+      </div>
+      <% } %>
+    <% } else if (typeof(message[i].type) !== 'undefined' && message[i].type == 'infoMsg') {%>
+      <div class="alert alert-warning"">
+        <span class="oi oi-paperclip" aria-hidden="true"></span>
+        <%= message[i].msg %>
+      </div>
+    <% } %>
+  <% } %>
+  </div>
+<% } %>

@@ -19,8 +19,11 @@
 
       <main role="main" class="container-fluid">
         <div class="row">
-          <h1><%= title %></h1>
-          <p>Welcome to <%= title %></p>
+           <% include partials/message.ejs %>
+           <div class="col-12">
+            <h1><%= title %></h1>
+            <p>Welcome to <%= title %></p>
+          </div>
         </div>
       </main>
     </div>
