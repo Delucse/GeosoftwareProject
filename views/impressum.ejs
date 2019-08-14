@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <title><%= title %></title>
+
+    <meta name="author" content="Luc, Phil, Lukas"/>
+    <meta charset="UTF-8">
+
+    <% include partials/stylesheet.ejs %>
+
+  </head>
+
+  <body>
+
+    <div class="wrapper">
+
+      <% include partials/header.ejs %>
+
+      <main role="main" class="container-fluid">
+        <div class="row">
+           <div class="col-12">
+            <h1><%= title %></h1>
+            <p><strong>Autor
+            <br></strong>Luc N.
+            <br>Phil 
+            <br>Lukas </p>
+
+            <p><strong>Universität
+            <br></strong>Westfälische Wilhelms-Universität Münster
+            </p>
+
+            <p><strong>Kurs
+            <br></strong>
+            <br>Geosoftware I
+            <br>Sommersemester 2019
+            <br>Matthias S.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+      <% include partials/footer.ejs %>
+
+  </body>
+</html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>
