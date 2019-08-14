@@ -3,9 +3,9 @@ var router = express.Router();
 
 
 /* GET home page. */
-router.get('/', (req, res, next) => {
+router.get('/', function(req, res){
   res.render('impressum', {
-    title: 'Impressum - GeosoftwareProject'
+    title: 'Impressum'
     });
 });
 

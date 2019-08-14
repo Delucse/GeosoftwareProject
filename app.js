@@ -117,6 +117,8 @@ let indexRouter = require('./routes/index');
 app.use('/', indexRouter);
 let usersRouter = require('./routes/users');
 app.use('/user', usersRouter);
+let impressumRouter = require('./routes/impressum');
+app.use('/impressum', impressumRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
