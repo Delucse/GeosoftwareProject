@@ -49,6 +49,9 @@ app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist'));
 app.use('/bootstrap', express.static(__dirname + '/node_modules/bootstrap/dist'));
 app.use('/popper', express.static(__dirname + '/node_modules/popper.js/dist'));
 app.use('/open-iconic', express.static(__dirname + '/node_modules/open-iconic/font'));
+app.use("/leaflet", express.static(__dirname + "/node_modules/leaflet/dist"));
+app.use("/leaflet-routing-machine", express.static(__dirname + "/node_modules/leaflet-routing-machine/dist"));
+app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/leaflet-control-geocoder/dist"));
 
 // body parser middleware
 // parse application/x-www-form-urlencoded
@@ -119,6 +122,8 @@ let usersRouter = require('./routes/users');
 app.use('/user', usersRouter);
 let impressumRouter = require('./routes/impressum');
 app.use('/impressum', impressumRouter);
+let routesRouter = require('./routes/routes');
+app.use('/route', routesRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

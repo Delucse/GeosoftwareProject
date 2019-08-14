@@ -1,0 +1,105 @@
+
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title>Routen-Editor</title>
+
+  <meta name="author" content="Luc N."/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+  <link rel="stylesheet" href="/leaflet/leaflet.css"/>
+
+  <!-- This is a demo app only -->
+  <link rel="stylesheet" href="/leaflet-control-geocoder/Control.Geocoder.css" />
+
+  <link rel="stylesheet" href="/leaflet-routing-machine/leaflet-routing-machine.css" />
+
+
+</head>
+
+
+<body onload="editAndShowPolyline()" >
+
+  <div class="wrapper">
+
+    <% include partials/header.ejs %>
+
+    <main role="main" class="container-fluid">
+      <div class="row">
+        <% include partials/message.ejs %>
+        <div class="col-md-6" style="margin-top: 20px;">
+          <div id="map" style= "height:550px;">
+            <p id=mapError></p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="row">
+            <div class="col-12" style="margin-top: 20px; margin-bottom: 10px;">
+              <label for="geojsontextareaInput">Routen-Eingabe (optional):</label>
+              <textarea id="geojsontextareaInput" style="width: 100%; height: 112.1px;" onchange="showNotValidGeoJSONPolyline()"></textarea>
+              <button class="popup" onclick="editExistingPolyline()" style="margin: 6px 5px 0px 0px">
+                <span class="popuptext" id="myPopupInputEmpty">fehlende<br>Routeneingabe</span>
+                <span class="popuptext" id="myPopupInputFull">Route wird<br>berechnet</span>
+                Route bearbeiten
+              </button>
+              <button class="popup" onclick="deleteText('geojsontextareaInput')" style="margin-top: 6px">
+                Eingabe löschen
+              </button>
+            </div>
+            <div id="form" class="col-sm-6" style="margin-top: 10px; margin-bottom: 10px;">
+              <form id="furtherInformation" name="myform">
+                <input id="geometry" name="geometry" type="hidden" form="furtherInformation"/>
+                Typ:<br>
+                <select id="typeInput" onchange="updateForm()" name="type" maxlength="100"  required form="furtherInformation">
+                  <option value="Aufnahme">Aufnahme</option>
+                  <option value="Planung">Planung</option>
+                </select><br><br>
+                Name: <text id=smallFont>(keine Anführungszeichen)</text><br>
+                <input id="nameInput" onchange="updateForm()" type="text" name="name" maxlength="100" size="30" required><br><br>
+              </form>
+            </div>
+            <div class="col-sm-6" style="margin-top: 10px; margin-bottom: 10px;">
+              Beschreibung: <text id=smallFont>(keine Anführungszeichen)</text><br>
+              <textarea id="descriptionInput" onchange="updateForm()" type="text" name="description" form="furtherInformation" required style="height: 103px; width: 100%"></textarea>
+            </div>
+            <div class="col-12" style="margin-top: 10px; margin-bottom: 44.2px;"> <!--20px(normal margin value) + 24.2px(height of the footer)-->
+                <label for="geojsontextareaOutput">Routen-Ausgabe:</label>
+                <textarea id="geojsontextareaOutput" type="text" readonly style="width: 100%; height: 112.1px;"></textarea>
+                <button onclick="isComplete('/route/create/')" style="margin: 6px 5px 0px 0px">Route erstellen</button>
+                <button class="popup" onclick="copyText()" style="margin-top: 6px">
+                  <span class="popuptext" id="myPopupOutput"></span>
+                  Kopieren
+                </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <% include partials/footer.ejs %>
+
+</body>
+
+</html>
+
+
+<script src="/leaflet/leaflet.js"></script>
+
+<!--https://github.com/perliedman/leaflet-control-geocoder/blob/master/README.md-->
+<script src="/leaflet-control-geocoder/Control.Geocoder.min.js"></script>
+
+<script src="/leaflet-routing-machine/leaflet-routing-machine.min.js"></script>
+
+<script src="/popper/umd/popper.min.js"></script>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>
+
+<script src="/javascripts/client_polyline.js"></script>
