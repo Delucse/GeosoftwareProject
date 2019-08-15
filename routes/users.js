@@ -145,4 +145,120 @@ router.get('/logout', authorizationCheck, function(req, res){
 });
 
 
+// profile of current user
+router.get('/:userId', authorizationCheck, (req, res, next) => {
+  if(req.params.userId == res.locals.user._id){
+    User.findById(req.params.userId).exec().then(user => {
+      Route.find({userId: req.params.userId}).exec().then(route => {
+        console.log('activity', route);
+        res.render('profile', {
+          title: 'Profil',
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          id: user._id,
+          date: prettyTime(user.date),
+          activity: route.length,
+          message: req.flash('message')
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        req.flash('message', {type: 'infoMsg',
+                               msg: 'Server Fehler. Versuchen Sie es erneut.'
+                             });
+        res.redirect('/user/'+req.params.userId);
+      });
+    })
+    .catch(err => {
+      console.log(err);
+      req.flash('message', {type: 'infoMsg',
+                             msg: 'Server Fehler. Versuchen Sie es erneut.'
+                           });
+      res.redirect('/user/'+req.params.userId);
+    });
+  }
+  else {
+    req.flash('message', {type: 'errorMsg',
+                          link: '/user/logout',
+                           msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+                         });
+    res.redirect('/user/login');
+  }
+});
+
+// import route model
+const Route = require('../models/route');
+
+router.get('/delete/:userId', authorizationCheck, (req, res, next) => {
+  if(req.params.userId == res.locals.user._id){
+        Route.deleteMany({userId: req.params.userId}).exec().then(route => {
+          User.deleteOne({_id: req.params.userId}).exec().then(result => {
+            req.flash('message', {type: 'successMsg',
+                                   msg: 'Der Benutzer wurde erfolgreich gelöscht'
+                                 });
+            if(route.deletedCount > 0){  // route = { n: 1, ok: 1, deletedCount: 1}
+            req.flash('message', {type: 'successMsg',
+                                   msg: 'Alle zugehörigen Routen wurden erfolgreich aus der Datenbank entfernt.'
+                                 });
+          }
+          res.redirect('/user/login');
+        })
+        .catch(err => {
+          console.log(err);
+          req.flash('message', {type: 'infoMsg',
+                                 msg: 'Server Fehler. Versuchen Sie es erneut.'
+                               });
+          res.redirect('/user/'+req.params.userId);
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        req.flash('message', {type: 'infoMsg',
+                               msg: 'Server Fehler. Versuchen Sie es erneut.'
+                             });
+        res.redirect('/user/'+req.params.userId);
+      });
+}
+else {
+  req.flash('message', {type: 'errorMsg',
+                        link: '/user/logout',
+                         msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+                       });
+  res.redirect('/user/login');
+}
+});
+
+
 module.exports = router;
+
+
+
+
+/**
+* @desc changes the time and date in a pretty way
+* @param {date} time
+* @return {string} prettyTime, time and date in a pretty way (day hh:mm:ss, dd.mm.yyyy)
+*/
+function prettyTime(time){
+  var today = time;
+  var day = today.getDate();
+  // get the day of the week
+  var dayNumber = today.getDay();
+  var weekday = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samsatg'];
+  // counting starts at 0
+  var month = today.getMonth() + 1;
+  var year = today.getFullYear();
+  var hour = today.getHours();
+  var minute = today.getMinutes();
+  var second = today.getSeconds();
+  // to retain the schema (hh:mm:ss, dd.mm.yyyy), a 0 must be added if necessary
+  var add0 = [day, month, hour, minute, second];
+  for(var i=0; i < add0.length; i++){
+    if(add0[i] < 10){
+      add0[i] = '0'+add0[i];
+    }
+  }
+  var prettyTime = weekday[dayNumber]+' '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr, '+add0[0]+'.'+add0[1]+'.'+year;
+  return prettyTime;
+}

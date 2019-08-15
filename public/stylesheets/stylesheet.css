@@ -33,6 +33,12 @@ html,body {
   margin-bottom: 0px;
 }
 
+th {
+  text-align: left;
+  padding: 8px;
+  font-weight: normal;
+}
+
 
 /* Popup container - can be anything you want */
 .popup {

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title><%= title %></title>
+
+  <meta name="author" content="Luc N."/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+</head>
+
+
+<body>
+
+  <div class="wrapper">
+
+    <% include partials/header.ejs %>
+
+    <main role="main" class="container-fluid">
+      <div class="row">
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4" style="margin-top: 20px; margin-bottom: 44.2px;"><!--20px(normal margin value) + 24.2px(height of the footer)-->
+
+
+          <% include partials/message.ejs %>
+
+          <% if (typeof(firstName) !== 'undefined' &&
+                 typeof(lastName) !== 'undefined' &&
+                 typeof(email) !== 'undefined' &&
+                 typeof(id) !== 'undefined' &&
+                 typeof(date) !== 'undefined' &&
+                 typeof(activity) !== 'undefined') {%>
+          <h1>Profil von <%= firstName%> <%= lastName %></h1>
+          <br>
+          <br>
+          <p>Vorname: <%= firstName %></p>
+          <p>Nachname: <%= lastName %></p>
+          <p>Email: <%= email %></p>
+          <p>Benutzer seit <%= date %></p>
+          <p>Aktivitäten:
+            <%if (activity > 0) { %>
+              <%if (activity > 1) { %>
+                <%=activity%> Routen
+              <% } else { %>
+                <%=activity%> Route
+              <% } %>
+            <% } else { %>
+              noch keine Routen
+            <% } %>
+            erstellt</p>
+          <br>
+          <br>
+          <form action="/user/delete/<%= id %>" method="GET">
+            <button id="deleteUser" type="submit" onClick="return confirm('Möchten Sie ihr Benutzerprofil wirklich löschen? \n\nDamit einhergehend werden alle Routen von Ihnen unwiderruflich gelöscht.');">Profil löschen</button>
+          </form>
+          <% } %>
+        </div>
+        <div class="col-md-4">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <% include partials/footer.ejs %>
+
+</body>
+
+</html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>
