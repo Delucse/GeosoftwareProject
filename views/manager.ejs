@@ -1,0 +1,122 @@
+
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title><%= title %></title>
+
+  <meta name="author" content="Luc N."/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+  <link rel="stylesheet" href="/leaflet/leaflet.css"/>
+
+
+</head>
+
+<% if (typeof(data) !== 'undefined') { %>
+  <body onload = "getTime(<%= JSON.stringify(data) %>), getPolylineLeaflet(<%= JSON.stringify(data) %>)">
+<% } else { %>
+  <body>
+<% } %>
+
+          <div class="wrapper">
+
+          <% include partials/header.ejs %>
+
+          <main role="main" class="container-fluid">
+            <div class="row">
+              <% include partials/message.ejs %>
+            </div>
+
+            <% if (typeof(data) !== 'undefined' &&
+            typeof(id) !== 'undefined') {%>
+              <% for(var i=0; i < data.length; i++) {%>
+                <div class="row" <% if (i < data.length-1) {%>style="border-style: none none solid none; border-width: 1px;"<% } %>>
+                  <div class="col-md-8" style="margin-top: 20px; margin-bottom:<% if (i == data.length-1) {%>24.2px;"><% } else { %> 0px;"><% } %>
+                    <div style="margin-bottom: 10px;">
+                      <b>Route "<%= data[i].name %>"</b><br>
+                      <table>
+                        <tr>
+                          <th style="padding: 0px;">Beschreibung:</th>
+                          <th><%= data[i].description %></th>
+                        </tr>
+                        <tr>
+                          <th style="padding: 0px;">Typ:</th>
+                          <th><%= data[i].type %></th>
+                        </tr>
+                        <tr>
+                          <th style="padding: 0px;">erstellt am:</th>
+                          <th id="date <%= i %>"></th>
+                        </tr>
+                        <tr>
+                          <th style="padding: 0px;">Änderungen:</th>
+                          <th><%= data[i].updates %></th>
+                        </tr>
+                        <tr>
+                          <th style="padding: 0px;">Koordinaten:</th>
+                          <th>
+                            <details>
+                              <summary>
+                                 ...
+                              </summary>
+                              <%= JSON.stringify(data[i].coordinates) %>
+                            </details>
+                          </th>
+                        </tr>
+                        <tr>
+                          <th colspan="2" style="padding: 0px;">
+                            <table>
+                              <tr>
+                                <th style="padding-left: 0px;">
+                                  <form action="/route/<%= data[i]._id %>" method="GET">
+                                    <button>Anzeigen</button>
+                                  </form>
+                                </th>
+                                <th>
+                                  <form action="/route/update/<%= data[i]._id %>" method="GET">
+                                    <button>Bearbeiten</button>
+                                  </form>
+                                </th>
+                                <th>
+                                  <form action="/route/delete/<%= data[i]._id %>" method="GET">
+                                    <button>Löschen</button>
+                                  </form>
+                                </th>
+                              </tr>
+                            </table>
+                          </th>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                  <div class="col-md-4" style="margin-top: 20px; margin-bottom: 44.2px;">
+                    <div id="map <%=i%>" style="height:250px; width: 100%;">
+                    </div>
+                  </div>
+                </div>
+
+                <% } %>
+                <% } %>
+              </div>
+
+            </div>
+          </main>
+        </div>
+
+        <% include partials/footer.ejs %>
+
+      </body>
+
+      </html>
+
+      <script src="/leaflet/leaflet.js"></script>
+
+      <script src="/jquery/jquery.min.js"></script>
+
+      <script src="/bootstrap/js/bootstrap.min.js"></script>
+
+      <script src="/javascripts/route_manage_leaflet.js"></script>

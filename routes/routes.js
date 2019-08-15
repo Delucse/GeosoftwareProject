@@ -60,7 +60,7 @@ router.post('/create', authorizationCheck, (req, res, next) => {
       req.flash('message', { type: 'successMsg',
                               msg: 'Die neu angelelgte Route wurde erfolgreich der Datenbank hinzugefügt.'
                            });
-      res.redirect('/');
+      res.redirect('/route/manage/'+req.user._id);
 
     })
     .catch(err => {
@@ -94,7 +94,7 @@ router.get('/update/:routeId', authorizationCheck, (req, res, next) => {
         link: '/user/logout',
         msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
       }]);
-      res.redirect('/');
+      res.redirect('/route/manage/'+req.user._id);
     }
   })
       .catch(err => {
@@ -102,7 +102,7 @@ router.get('/update/:routeId', authorizationCheck, (req, res, next) => {
           type: 'errorMsg',
           msg: 'Die angefragte Route existiert nicht in der Datenbank.'
         }]);
-        res.redirect('/');
+        res.redirect('/route/manage/'+req.user._id);
       });
 });
 
@@ -118,7 +118,7 @@ router.post('/update', authorizationCheck, (req, res, next) => {
         type: 'infoMsg',
         msg: 'Es wurden keine Änderungen an der Route vorgenommen.'
       }]);
-      res.redirect('/');
+      res.redirect('/route/manage/'+req.user._id);
     }
     else {
       // changes are made: current route must be updated
@@ -149,10 +149,12 @@ router.post('/update', authorizationCheck, (req, res, next) => {
 
         Route.updateOne({_id: id}, updateRoute).exec().then(newRoute => {
           // update route was successfull
-          req.flash('message', [{ type: 'successMsg',
+          req.flash('message', { type: 'successMsg',
             msg: 'Die Route wurde erfolgreich in der Datenbank aktualisiert.'
-          }]);})}
-
+            });
+           res.redirect('/route/manage/'+req.user._id);
+          });
+      }
       else {
         // error output (req.flash(...))
         res.redirect('/route/update/'+id);
@@ -161,11 +163,11 @@ router.post('/update', authorizationCheck, (req, res, next) => {
     }})
       .catch(err => {
         // requested route do not exist
-        req.flash('message', [{
+        req.flash('message', {
           type: 'errorMsg',
           msg: 'Die angefragte Route existiert nicht in der Datenbank.'
-        }]);
-        res.redirect('/');
+        });
+        res.redirect('/route/manage/'+req.user._id);
       });
 });
 
@@ -215,5 +217,119 @@ function prettyTime(time){
   var prettyTime = weekday[dayNumber]+' '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr, '+add0[0]+'.'+add0[1]+'.'+year;
   return prettyTime;
 }
+
+// read (CRUD)
+router.get('/:routeId', authorizationCheck, (req, res, next) => {
+  Route.findById(req.params.routeId).exec().then(route => {
+    var userId = route.userId;
+    if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
+      var id = req.params.routeId;
+      res.render('read', {
+        title: 'Verwaltung',
+        route: createFeatureCollection([route]),
+        name: "Route mit der ID ",
+        id: id,
+        update: route.updates
+      });
+    }
+    else {
+      req.flash('message',{
+            type: 'errorMsg',
+            link: '/user/logout',
+            msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+          });
+      res.redirect('/route/manage/'+res.locals.user._id);
+    }
+  })
+  .catch(err => {
+    req.flash('message',{
+          type: 'errorMsg',
+          msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+        });
+    res.redirect('/route/manage/'+res.locals.user._id);
+  });
+});
+
+//delete (CRUD)
+router.get('/delete/:routeId', authorizationCheck, (req, res, next) => {
+Route.findById(req.params.routeId).exec().then(route => {
+  var userId = route.userId;
+  if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
+
+        Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
+          req.flash('message',
+            { type: 'successMsg',
+             msg: 'Die Route wurde erfolgreich aus der Datenbank entfernt.'
+           });
+          res.redirect('/route/manage/'+res.locals.user._id);
+        })
+    .catch(err => {
+      req.flash('message', {
+         type: 'errorMsg',
+         msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+       });
+      res.redirect('/route/manage/'+res.locals.user._id);
+    });
+  }
+  else {
+    req.flash('message', {
+       type: 'errorMsg',
+       link: '/user/logout',
+       msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+     });
+    res.redirect('/route/manage/'+res.locals.user._id);
+  }
+})
+.catch(err => {
+  req.flash('message', {
+     type: 'errorMsg',
+     msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+   });
+  res.redirect('/route/manage/'+res.locals.user._id);
+});
+});
+
+router.get('/manage/:userId', authorizationCheck, (req, res, next) => {
+    if(JSON.stringify(req.params.userId) === JSON.stringify(res.locals.user._id)){
+      Route.find({userId: req.params.userId}).exec().then(route => {
+        if(route.length < 1){
+          req.flash('message', {
+             type: 'infoMsg',
+             msg: 'Es sind keine Routen unter dem aktuellen Benutzer abgespeichert.'
+           });
+          res.render('manager', {
+            title: "Verwaltung",
+            message: req.flash('message')
+          });
+        } else {
+          console.log('ResultRoute', route);
+          res.render('manager', {
+            title: 'Verwaltung',
+            data: route,
+            id: req.params.userId,
+            message: req.flash('message')
+          });
+        }
+      })
+      .catch(err => {
+        res.render('manager', {
+          title: 'Verwaltung',
+          message:{
+            type: 'errorMsg',
+            msg: 'Der Benutzer existiert nicht.'
+          }
+        });
+      });
+    }
+    else {
+      req.flash('message',{
+            type: 'errorMsg',
+            link: '/user/logout',
+            msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+          });
+      res.redirect('/route/manage/'+res.locals.user._id);
+    }
+  });
+
 
 module.exports = router;

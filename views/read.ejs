@@ -1,0 +1,81 @@
+
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+	<title><%= title %></title>
+
+	<meta name="author" content="Luc N."/>
+	<meta charset="UTF-8"/>
+
+	<% include partials/stylesheet.ejs %>
+
+</head>
+
+
+<body>
+
+	<div class="wrapper">
+
+		<% include partials/header.ejs %>
+
+
+		<main role="main" class="container-fluid">
+			<div class="row">
+				<% include partials/message.ejs %>
+
+				<% if(typeof(name) !== 'undefined' && typeof(route) !== 'undefined') {%>
+				<div class="col-12" style="margin-top: 20px; margin-bottom: 10px;">
+					<b id="routeName" style="font-size: 20px;">
+							<%=name%> <%=id%>
+					</b>
+					<% if(typeof(update) !== 'undefined' && update > 0) {%>
+						(<%= update %>x nachträglich verändert)
+					<% } %>
+				</div>
+				<div class="col-12" style="margin-top: 10px; margin-bottom: 10px;">
+					<table>
+						<tr>
+							<td>
+								<form action="/route/manage/<%=user._id%>" method="GET">
+									<button type="submit" style="margin: 0px 5px 0px 0px;">
+										zurück
+									</button>
+								</form>
+							</td>
+							<td>
+								<form action="/route/update/<%=id%>" method="GET">
+									<button id="update" type="submit" style="margin: 0px 5px 0px 0px;">
+										Route bearbeiten
+									</button>
+								</form>
+							</td>
+							<td>
+								<form action="/route/delete/<%=id%>" method="GET">
+									<button id="delete" type="submit" style="margin: 0px 0px 0px 0px;">
+										Route löschen
+									</button>
+								</form>
+							</td>
+						</tr>
+					</table>
+				</div>
+				<p id="routeobject" style="padding: 3px 15px 24.2px 15px;">
+          <%=route%>
+        </p>
+				<% } %>
+			</div>
+		</main>
+	</div>
+
+  <% include partials/footer.ejs %>
+
+</body>
+
+</html>
+
+<script src="/jquery/jquery.min.js"></script>
+
+<script src="/bootstrap/js/bootstrap.min.js"></script>
