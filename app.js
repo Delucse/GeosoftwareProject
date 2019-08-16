@@ -52,6 +52,7 @@ app.use('/open-iconic', express.static(__dirname + '/node_modules/open-iconic/fo
 app.use("/leaflet", express.static(__dirname + "/node_modules/leaflet/dist"));
 app.use("/leaflet-routing-machine", express.static(__dirname + "/node_modules/leaflet-routing-machine/dist"));
 app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/leaflet-control-geocoder/dist"));
+app.use('/turf', express.static(__dirname + '/node_modules/@turf/turf'));
 
 // body parser middleware
 // parse application/x-www-form-urlencoded

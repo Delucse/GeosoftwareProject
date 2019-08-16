@@ -57,17 +57,37 @@ router.post('/create', authorizationCheck, (req, res, next) => {
     });
     newRoute.save().then(result => {
       console.log(objectId);
-      req.flash('message', { type: 'successMsg',
-                              msg: 'Die neu angelelgte Route wurde erfolgreich der Datenbank hinzugefügt.'
-                           });
-      res.redirect('/route/manage/'+req.user._id);
+      req.flash('message', {
+        type: 'successMsg',
+        msg: 'Die neu angelelgte Route wurde erfolgreich der Datenbank hinzugefügt.'
+      });
+      //calculate possible new encounters
+      Route.find({_id: objectId}).populate('userId', 'username').exec().then(createdRoute => {
+        Route.find({_id: {$ne: objectId}}).populate('userId', 'username').exec().then(allOtherRoutes => {
+          calculateEncounters(createdRoute[0], allOtherRoutes, 'user');
+          req.flash('message', {
+            type: 'successMsg',
+            msg: 'Alle zugehörigen möglichen Nutzer-Begegnungen wurden erfolgreich ermittelt.'
+          });
 
-    })
-    .catch(err => {
-      req.flash('message', {type: 'infoMsg',
-                             msg: 'Server Fehler. Versuchen Sie es erneut.'
-                           });
-      res.redirect('/route/create/');
+
+          res.redirect('/route/manage/' + req.user._id);
+        })
+            .catch(err => {
+              console.log(err);
+              req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'});
+              res.redirect('/route/manage/' + req.user._id);
+            });
+
+
+      })
+          .catch(err => {
+            req.flash('message', {
+              type: 'infoMsg',
+              msg: 'Server Fehler. Versuchen Sie es erneut.'
+            });
+            res.redirect('/route/create/');
+          });
     });
   }
   else {
@@ -152,15 +172,58 @@ router.post('/update', authorizationCheck, (req, res, next) => {
           req.flash('message', { type: 'successMsg',
             msg: 'Die Route wurde erfolgreich in der Datenbank aktualisiert.'
             });
-           res.redirect('/route/manage/'+req.user._id);
-          });
+          EncounterUser.deleteMany({$or: [{routeId: id}, {comparedRoute: id}]}).exec().then(removeUsers =>{
+            Route.find({_id: id}).populate('userId', 'username').exec().then(createdRoute => {
+              Route.find({_id: {$ne: id}}).populate('userId', 'username').exec().then(allOtherRoutes => {
+                calculateEncounters(createdRoute[0], allOtherRoutes, 'user');
+                req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen möglichen Nutzer-Begegnungen wurden erfolgreich aktualisiert.'})
+              .catch(err => {
+                  console.log(err);
+                  req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'});
+                  res.redirect('/route/manage/'+req.user._id);
+                });
+              })
+                  .catch(err => {
+                    console.log(err);
+                    req.flash('message', {
+                      type: 'infoMsg',
+                      msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'
+                    });
+                    res.redirect('/route/manage/'+req.user._id);
+                  });
+            })
+                .catch(err => {
+                  req.flash('message', [{
+                    type: 'infoMsg',
+                    msg: 'Server Fehler. Versuchen Sie es erneut.'
+                  }]);
+                  res.redirect('/route/create/');
+                });
+          })
+              .catch(err => {
+                req.flash('message', [{
+                  type: 'infoMsg',
+                  msg: 'Server Fehler. Versuchen Sie es erneut.'
+                }]);
+                res.redirect('/route/create/');
+              });
+      })
+            .catch(err => {
+              req.flash('message', [{
+                type: 'infoMsg',
+                msg: 'Server Fehler. Versuchen Sie es erneut.'
+              }]);
+              res.redirect('/route/update/'+id);
+            });
+
       }
       else {
         // error output (req.flash(...))
         res.redirect('/route/update/'+id);
       }
 
-    }})
+    }
+    })
       .catch(err => {
         // requested route do not exist
         req.flash('message', {
@@ -256,7 +319,8 @@ Route.findById(req.params.routeId).exec().then(route => {
   var userId = route.userId;
   if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
 
-        Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
+      EncounterUser.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeUser =>{
+      Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
           req.flash('message',
             { type: 'successMsg',
              msg: 'Die Route wurde erfolgreich aus der Datenbank entfernt.'
@@ -270,7 +334,14 @@ Route.findById(req.params.routeId).exec().then(route => {
        });
       res.redirect('/route/manage/'+res.locals.user._id);
     });
-  }
+  })
+          .catch(err => {
+            req.flash('message', [{
+              type: 'errorMsg',
+              msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+            }]);
+            res.redirect('/route/manage/'+res.locals.user._id);
+          });}
   else {
     req.flash('message', {
        type: 'errorMsg',
@@ -330,6 +401,198 @@ router.get('/manage/:userId', authorizationCheck, (req, res, next) => {
       res.redirect('/route/manage/'+res.locals.user._id);
     }
   });
+
+// ######################################################
+// import turf
+const turf = require('@turf/turf');
+
+
+function calculateEncounters(originalData, dataToCompare, encounterType){
+  if(encounterType === 'animal'){
+    console.log(encounterType);
+    console.log('originalData', originalData);
+    console.log('dataToCompare', dataToCompare);
+  }
+  var line1 = turf.lineString(originalData.coordinates);
+  for(var j = 0; j < dataToCompare.length; j++){
+    // only compare routes with different Id
+    if(originalData._id !== dataToCompare[j]._id){
+      var line2 = turf.lineString(dataToCompare[j].coordinates);
+      var coordinates = [];
+      var coordinatesOverlap = [];
+      calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      // only store the real encounters, those who have not an empty coordinate-array
+      if(coordinates.length > 0){
+        saveEncounter(originalData, dataToCompare[j], coordinates, encounterType);
+      }
+    }
+  }
+}
+
+
+function calculateIntersect(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+
+  var intersect = turf.lineIntersect(line1, line2);
+
+  // var coordinatesOverlap = coordinates;
+  for(var i = 0; i < intersect.features.length; i++){
+    var isPointOnLine = false;
+    var point = turf.point(intersect.features[i].geometry.coordinates);
+    for(var j = 0; j < coordinatesOverlap.length; j++){
+      console.log(coordinatesOverlap[j]);
+      var line = turf.lineString(coordinatesOverlap[j]);
+      var distance = turf.pointToLineDistance(point, line, {units: 'kilometers'});
+      if(distance < 0.001){
+        isPointOnLine = true;
+      }
+    }
+    if(!isPointOnLine){
+      coordinates.push([[intersect.features[i].geometry.coordinates[0], intersect.features[i].geometry.coordinates[1]]]);
+    }
+  }
+}
+
+function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+
+  // calculate the possible overlappings
+  var overlapping = turf.lineOverlap(line1, line2);
+
+  if(overlapping.features.length > 0){
+    for(var i = 0; i < overlapping.features.length; i++){
+      var overlapSegment = turf.lineString(overlapping.features[i].geometry.coordinates);
+      var length = turf.length(overlapSegment, {units: 'kilometers'});
+      // in turf it is possible to have a lineString out of exactly the same coordinates, normaly a point!
+      if(length > 0){
+        coordinates.push(overlapping.features[i].geometry.coordinates);
+        coordinatesOverlap.push(overlapping.features[i].geometry.coordinates);
+      }
+    }
+  }
+}
+
+
+// import encounter models
+const EncounterUser = require('../models/encounterUser');
+
+function saveEncounter(originalData, dataToCompare, coordinates, encounterType){
+
+  for(var i = 0; i < coordinates.length; i++){
+    var midCoordinate = calculateMidCoordinate(coordinates[i]);
+    here(midCoordinate, coordinates[i], dataToCompare, originalData, encounterType, (i+1));
+  }
+}
+
+const https = require("https");
+
+function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index){
+  const token = {
+    HERE_APP_ID_TOKEN: //your HERE_APP_ID_TOKEN,
+    HERE_APP_CODE_TOKEN: //your HERE_APP_CODE_TOKEN
+  };
+  const category = 'sights-museums';
+  var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
+  console.log('endpoint', endpoint);
+  https.get(endpoint, (httpResponse) => {
+
+    // concatenate updates from datastream
+    var body = "";
+    httpResponse.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    httpResponse.on("end", () => {
+      var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
+      newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index);
+    });
+
+    httpResponse.on("error", (error) => {
+      var location_info = 'keine ortsbezogenen Informationen abrufbar';
+      newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index);
+    });
+
+  });
+}
+
+function createPrettyLocationInfo(location_info, coordinates){
+  var info = location_info.results.items;
+  var content = '<br>';
+  console.log('prettyCoordinates', coordinates);
+  if(coordinates.length > 1){
+    var line = turf.lineString(coordinates);
+    for(var i = 0; i < info.length; i++){
+      var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
+      content = content + '<li>'+info[i].title+', '+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+    }
+  }
+  else if(coordinates.length === 1){
+    var circle = turf.point(coordinates[0]);
+    for(var j = 0; j < info.length; j++){
+      var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
+      content = content + '<li>'+info[j].title+', '+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+    }
+  }
+  return content;
+}
+
+function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index){
+  if(encounterType === 'user'){
+    const newEncounter = new EncounterUser({
+      index: index,
+      routeId: originalData._id,
+      routeName: originalData.name,
+      userId: originalData.userId._id,
+      userName: originalData.userId.username,
+      comparedRoute: dataToCompare._id,
+      comparedRouteName: dataToCompare.name,
+      comparedTo: dataToCompare.userId._id,
+      comparedToName: dataToCompare.userId.username,
+      realEncounter: false,
+      coordinates: coordinates,
+      midCoordinate: midCoordinate,
+      location_info: location_info
+    });
+    newEncounter.save()
+        .catch(err => {
+          console.log(err);
+        });
+  }
+  else if(encounterType === 'animal'){
+
+  }
+}
+
+function calculateMidCoordinate(coordinates){
+  if(coordinates.length > 1){
+    var line = turf.lineString(coordinates);
+    var length = turf.length(line, {units: 'kilometers'});
+    var center = turf.along(line, (length/2), {units: 'kilometers'});
+    return center.geometry.coordinates;
+  }
+  else{
+    return coordinates[0];
+  }
+}
+
+// TODO: steht ursprünglich in index.js (route)
+/**
+ * @desc creates a featureCollection with all features/lineStrings from database
+ * @param {array} input, array as result of a database query
+ * @return {string} featureCollection
+ */
+function createFeatureCollection(input){
+  var featureCollection = "";
+  console.log('length', input[input.length-1]);
+  if(input.length > 0){
+    var lineString = "";
+    for(var i = 0; i < input.length-1; i++){
+      lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[i].id+'","date":"'+prettyTime(input[i].date)+'","type":"'+input[i].type+'","name":"'+input[i].name+'","description":"'+input[i].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[i].coordinates)+'}},';
+    }
+    lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[input.length-1].id+'","date":"'+prettyTime(input[input.length-1].date)+'","type":"'+input[input.length-1].type+'","name":"'+input[input.length-1].name+'","description":"'+input[input.length-1].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[input.length-1].coordinates)+'}}';
+    featureCollection = '{"type":"FeatureCollection","features":['+lineString+']}';
+  }
+  return featureCollection;
+}
 
 
 module.exports = router;

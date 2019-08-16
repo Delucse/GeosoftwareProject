@@ -3,6 +3,6 @@
 "use strict";
 
 module.exports = {
-  database:'mongodb://mongodbservice/itemdb'
+  database:'mongodb://localhost:27017/itemdb'
   //secret: 'yoursecret'
 };
