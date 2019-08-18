@@ -90,3 +90,14 @@ th {
   -webkit-animation: fadeIn 1s;
   animation: fadeIn 1s;
 }
+
+.btn-transparent {
+    background-color: Transparent;
+    background-repeat:no-repeat;
+    border: none;
+    cursor:pointer;
+    overflow: hidden;
+    outline:none;
+    padding: 0px;
+    margin: 0px;
+}

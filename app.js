@@ -87,10 +87,10 @@ app.use(validator({
 app.use(cookieParser());
 app.use(logger('dev'));
 
-const token = require('./config/token'); // Express Session Middleware
+// Express Session Middleware
 // @see https://github.com/expressjs/session
 app.use(session({
-  secret: token.secretSession, // TODO:
+  
   resave: true,
   saveUninitialized: true
 }));

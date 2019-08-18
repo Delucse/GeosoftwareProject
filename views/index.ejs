@@ -27,7 +27,7 @@
                       <details>
                         <summary>Filtern</summary>
 
-                        <form id="formAJAX">
+
                           <input type="text" hidden name="currentUserId" value="<%= user._id %>"/>
                           erstelle
                           <label style="margin: 0px;">
@@ -92,32 +92,35 @@
                                       <% animals.push(animal[i].individual_taxon_canonical_name) %>
                                       <li>
                                         <label style="margin: 0px;">
+                                         <table><tr><th style="padding:0px;">
                                           <input id="animal <%= j %>" type="checkbox" name="animal" value="<%= animal[i].individual_taxon_canonical_name %>" onclick="isChecked('animal <%= j %>', 'animal', <%= JSON.stringify(animal.length) %>)" checked/>
-                                          <%= animal[i].individual_taxon_canonical_name %>
-                                        </label>
+                                          <a href='https://de.wikipedia.org/wiki/<%= animal[i].individual_taxon_canonical_name %>' target="_blank" title="Wikipedia: <%= animal[i].individual_taxon_canonical_name %>"><%= animal[i].individual_taxon_canonical_name %></a></th>
+                                          <th style="padding: 0px 0px 0px 2px;">
+                                          <form action="api/movebank/update" method="Post">
+                                            <input name="individual_taxon_canonical_name" type="text" hidden value="<%= animal[i].individual_taxon_canonical_name %>"/>
+                                            <button class="btn-transparent" type="submit"><span class="oi oi-reload"></span></button>
+                                          </form></th></tr>
+                                        </table>
+                                       </label>
                                       </li>
                                   <% } %>
                                 <% } %>
                                 </ul>
                               <% } %>
                               <button onclick="ajaxCall(<%= JSON.stringify(user._id) %>)">Filtern</button>
-                        </form><br>
-                        <details>
-                          <summary>Tier-Daten hinzufügen</summary>
-                          <br>
-                          <form action="/api/movebank/all" method="GET">
-                            <button type="submit">Tier-Daten aktualisieren (unausgereift)</button>
-                          </form><br>
-                          <form action="/api/movebank" method="POST">
-                            <label>Study ID</label>
-                            <input type="text" name="study_id" value=""/>
-                            <label>Individual Local Identifier</label>
-                            <input type="text" name="individual_local_identifier" value=""/>
-                            <label>Sensor Typ</label>
-                            <input type="text" name="sensor_type" value=""/>
-                            <button type="submit">Tier-Daten hinzufügen</button>
-                          </form>
-                      </details>
+
+                       <details>
+                           <summary>Tier-Daten hinzufügen</summary>
+                           <form action="/api/movebank" method="POST">
+                             <label>Study ID</label>
+                             <input type="text" name="study_id" value="" required/>
+                             <label>Sensor Typ</label>
+                             <input type="text" name="sensor_type" value="" required/>
+                             <label>Individual Local Identifier</label>
+                             <input type="text" name="individual_local_identifier" value="" placeholder="Eingabe optional"/>
+                             <button type="submit">Tier-Daten hinzufügen</button>
+                           </form>
+                       </details>
                   </details>
 
         <div id="encounters" style="margin-top: 20px; margin-bottom: 44.2px;">

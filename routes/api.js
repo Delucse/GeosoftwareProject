@@ -9,163 +9,275 @@ const router = express.Router();
 
 const authorizationCheck = require('../middleware/authorizationCheck');
 
+const token = require('../config/token');
+
+
 // import animal model
 const Animal = require('../models/animal');
-
-
 // import animal model
 const EncounterAnimal = require('../models/encounterAnimal');
 // import route model
 const Route = require('../models/route');
 
-const token = require('../config/token');
 
 router.post("/movebank", authorizationCheck, (req, res, next) => {
-    var study_id = req.body.study_id;
+  console.log('body', req.body);
+  var study_id = req.body.study_id;
+  var sensor_type = req.body.sensor_type;
+  var endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id="+study_id+/*"&individual_local_identifiers[]="+individual_local_identifiers+*/"&sensor_type="+sensor_type;
+  if(req.body.individual_local_identifier !== ''){
     var individual_local_identifiers = req.body.individual_local_identifier;
-    var sensor_type = req.body.sensor_type;
-    var endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id="+study_id+"&individual_local_identifiers[]="+individual_local_identifiers+"&sensor_type="+sensor_type;
+    endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id="+study_id+"&individual_local_identifiers[]="+individual_local_identifiers+"&sensor_type="+sensor_type;
+    console.log(endpoint);
+  }
+  var username = token.MOVEBANK_USERNAME;
+  var password = token.MOVEBANK_PASSWORD;
+  console.log('username', username);
+  const options = {
+    headers: {
+      'Authorization': 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
+    }
+  };
 
+  https.get(endpoint, options, (httpResponse) => {
+    // concatenate updates from datastream
+    var body = "";
+    httpResponse.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    httpResponse.on("end", () => {
+      try{
+        // if the response is not json, than the URL was wrong (catch-block)
+        var movebankData = JSON.parse(body);
+        var message = [0, 0, 0, 0, 0, 0, 0, 0]; // [AnimalAdded, AnimalExist, AnimalExist&update, calculateAllEncounters, errorEncounters, AnimalNotFound, errorServer, errorServerDataLimit]
+        asyncLoopAnimals(0, movebankData, sensor_type, res, req, message, function(){createMessages(message, req, res);});
+      }
+      catch(err){
+        req.flash('message', {type: 'errorMsg', link: 'https://www.movebank.org/', msg: ['Keine Übereinstimmung mit den Daten von ', 'movebank.org', ' gefunden. Überprüfen Sie Ihre Eingaben und versuchen Sie es gegebenenfalls erneut.']});
+        res.redirect('/');
+      }
+    });
+
+    httpResponse.on("error", (error) => {
+      req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler. Versuchen Sie es erneut.'});
+      res.redirect('/');
+
+      throw error;
+    });
+
+  });
+
+});
+
+
+
+// @see https://cpt.today/asynchronous-loop-in-nodejs-mongoose/
+function asyncLoopAnimals(i, movebankData, sensor_type, res, req, message, cb){
+  if(i < movebankData.individuals.length){
+    var study_id = movebankData.individuals[i].study_id;
+    var individual_local_identifier = movebankData.individuals[i].individual_local_identifier;
+    var individual_taxon_canonical_name = movebankData.individuals[i].individual_taxon_canonical_name;
+    var coordinates = [];
+    for(var j = 0; j < movebankData.individuals[i].locations.length; j++){
+      coordinates.push([movebankData.individuals[i].locations[j].location_long, movebankData.individuals[i].locations[j].location_lat]);
+    }
+    Animal.find({individual_local_identifier: individual_local_identifier, study_id: study_id, sensor_type: sensor_type}).exec().then(animal => {
+      // checks if this specfic animal exists
+      if(animal.length === 1){
+        // checks if there are any changes
+        if(JSON.stringify(animal[0].coordinates) !== JSON.stringify(coordinates)){
+          var updateAnimal = {};
+          updateAnimal.coordinates = coordinates;
+          updateAnimal.updates = animal[0].updates + 1;
+          // update the database-document
+          Animal.updateOne({_id: animal[0]._id}, updateAnimal).exec().then(animalUpdate => {
+            // update animal was successfull
+            message[2] = message[2]+1; // {type: 'successMsg', msg: 'Das angeforderte Tier existiert bereits in der Datenbank und wurde nun aktualisiert.'}
+            Animal.findById(animal[0]._id).exec().then(updatedAnimal => {
+              Route.find({}).populate('userId', 'username').exec().then(allRoutes => {
+                calculateEncounters(updatedAnimal, allRoutes, 'animal');
+                message[3] = message[3]+1; // {type: 'successMsg', link: '/', msg: ['Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt. Gegebenfalls muss die Seite ','neu geladen',' werden.']}
+                asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+              })
+              .catch(err => {
+                message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+                asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+              });
+            })
+            .catch(err => {
+              message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
+              asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+            });
+          })
+          .catch(err => {
+            message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
+            asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+          });
+        }
+        else{
+          // do not update the database-document
+          message[1] = message[1]+1; // {type: 'successMsg', msg: 'Das angeforderte Tier existiert schon in der Datenbank und ist bereits auf dem aktuellen Stand.'}
+          console.log('message[1]',message[1]);
+          asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+        }
+      }
+      else {
+        //  specific animal do not exist, create a new animal
+        const newAnimal = new Animal({
+          individual_taxon_canonical_name: individual_taxon_canonical_name,
+          study_id: study_id,
+          individual_local_identifier: individual_local_identifier,
+          sensor_type: sensor_type,
+          coordinates: coordinates
+        });
+        newAnimal.save().then(animal => {
+          message[0] = message[0]+1; // {type: 'successMsg', msg: 'Die angeforderten Tier-Daten wurden erfolgreich ermittelt und in der Datenbank gespeichert.'}
+          Animal.find({$and:[{study_id: study_id},{individual_local_identifier: individual_local_identifier},{sensor_type: sensor_type}]}).exec().then(animalNew => {
+            Route.find({}).populate('userId','username').exec().then(allRoutes => {
+              // console.log('Routes', allRoutes);
+              calculateEncounters(animalNew[0], allRoutes, 'animal');
+              message[3] = message[3]+1;
+              asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+            })
+            .catch(err => {
+              message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+              asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+            });
+          })
+          .catch(err => {
+            message[5] = message[5]+1;
+            asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+          });
+        })
+        .catch(err => {
+          message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
+          asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+        });
+      }
+    })
+    .catch(err  => {
+      message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
+      asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+    });
+  }
+  else {
+    cb();
+  }
+}
+
+
+
+function asyncLoopHTTPGet(i, array, req, res, message){
+  if (i < array.length) {
     var username = token.MOVEBANK_USERNAME;
     var password = token.MOVEBANK_PASSWORD;
     const options = {
-        headers: {
-            'Authorization': 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
-        }
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
+      }
     };
 
+    var sensor_type = array[i].sensor_type;
+    var study_id = array[i].study_id;
+    var individual_local_identifier = array[i].individual_local_identifier;
+    var endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id="+study_id+"&individual_local_identifiers[]="+individual_local_identifier+"&sensor_type="+sensor_type;
     https.get(endpoint, options, (httpResponse) => {
-        // concatenate updates from datastream
-        var body = "";
-        httpResponse.on("data", (chunk) => {
-            body += chunk;
-        });
+      // concatenate updates from datastream
+      var body = "";
+      httpResponse.on("data", (chunk) => {
+        body += chunk;
+      });
+      httpResponse.on("end", () => {
+        try{
+          // if the response is not json, than the URL was wrong (catch-block)
+          var movebankData = JSON.parse(body);
+          // only one individuum is requested
+          asyncLoopAnimals(0, movebankData, sensor_type, res, req, message, function(){asyncLoopHTTPGet(i+1, array, req, res, message);});
+          // asyncLoopHTTPGet(i+1, array, req, res, message);
+        }
 
-        httpResponse.on("end", () => {
-            try{
-                // if the response is not json, than the URL was wrong (catch-block)
-                var movebankData = JSON.parse(body);
-                // only one individuum is requested
-                var study_id = movebankData.individuals[0].study_id;
-
-                var individual_local_identifier = movebankData.individuals[0].individual_local_identifier;
-                var individual_taxon_canonical_name = movebankData.individuals[0].individual_taxon_canonical_name;
-                var coordinates = [];
-                for(var i = 0; i < movebankData.individuals[0].locations.length; i++){
-                    coordinates.push([movebankData.individuals[0].locations[i].location_long, movebankData.individuals[0].locations[i].location_lat]);
-                }
-                // coordinates.push([1,2]);
-                // DATEN ÜBERPRÜFEN????!!!!
-
-                // it is possible to have more than one individual_local_identifier, but only one individual_taxon_canonical_name!
-                // so it is possible to store more than one individual_local_identifier to one individual_taxon_canonical_name
-                Animal.find({individual_local_identifier: individual_local_identifier, study_id: study_id, sensor_type: sensor_type}).exec().then(animal => {
-                    console.log(animal.length);
-                    // checks if this specfic animal exists
-                    if(animal.length == 1){
-                        // checks if there are any changes
-                        if(JSON.stringify(animal[0].coordinates) !== JSON.stringify(coordinates)){
-                            var updateAnimal = {};
-                            updateAnimal.coordinates = coordinates;
-                            updateAnimal.updates = animal[0].updates + 1;
-                            // update the database-document
-                            Animal.updateOne({_id: animal[0]._id}, updateAnimal).exec().then(animalUpdate => {
-                                // update animal was successfull
-                                req.flash('message', {type: 'successMsg', msg: 'Das angeforderte Tier existiert bereits in der Datenbank und wurde nun aktualisiert.'});
-                                EncounterAnimal.deleteMany({routeId: animal[0]._id}).exec().then(removeAnimals =>{
-                                    Animal.findById(animal[0]._id).exec().then(updatedAnimal => {
-                                        Route.find({}).populate('userId', 'username').exec().then(allRoutes => {
-                                            console.log('Routes', allRoutes);
-                                            console.log('animal', animalUpdate);
-                                            console.log('updateAnimal[0]', updatedAnimal[0]);
-                                            console.log('allRoutes', allRoutes);
-                                            calculateEncounters(updatedAnimal, allRoutes, 'animal');
-                                            req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt.'});
-                                            res.redirect('/');
-                                        })
-                                            .catch(err => {
-                                                console.log(err);
-                                                req.flash('message', {type: 'errorMsg', msg: 'Funktion wurde nicht anerkannt.'});
-                                                res.redirect('/');
-                                            });
-                                    })
-                                        .catch(err => {
-                                            req.flash('message', message[2][0]);
-                                            res.redirect('/');
-                                        });
-                                })
-                                    .catch(err => {
-                                        req.flash('message', message[2][0]);
-                                        res.redirect('/');
-                                    });
-                            })
-                                .catch(err => {
-                                    req.flash('message', message[2][0]);
-                                    res.redirect('/');
-                                });
-                        }
-                        else{
-                            // do not update the database-document
-                            req.flash('message', {type: 'successMsg', msg: 'Das angeforderte Tier existiert bereits und ist schon auf dem neuesten Stand.'});
-                            res.redirect('/');
-                        }
-                    }
-                    else {
-                        //  specific animal do not exist, create a new animal
-                        const newAnimal = new Animal({
-                            individual_taxon_canonical_name: individual_taxon_canonical_name,
-                            study_id: study_id,
-                            individual_local_identifier: individual_local_identifier,
-                            sensor_type: sensor_type,
-                            coordinates: coordinates
-                        });
-                        newAnimal.save().then(animal => {
-                            req.flash('message', {type: 'successMsg', msg: 'Die angeforderten Tier-Daten wurden erfolgreich ermittelt und gespeichert.'});
-                            Animal.find({study_id: study_id},{individual_local_identifier: individual_local_identifier},{sensor_type: sensor_type}).exec().then(animalNew => {
-                                Route.find({}).populate('userId','username').exec().then(allRoutes => {
-                                    console.log('Routes', allRoutes);
-                                    calculateEncounters(animalNew[0], allRoutes, 'animal');
-                                    req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt.'});
-                                    res.redirect('/');
-                                })
-                                    .catch(err => {
-                                        console.log('error', err);
-                                        req.flash('message', {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'});
-                                        res.redirect('/');
-                                    });
-                            })
-                                .catch(err => {
-                                    console.log('error', err);
-                                    req.flash('message', {type: 'errorMsg', msg: 'Bestimmtes Tier wurde nicht in der Datenbank gefunden.'});
-                                    res.redirect('/');
-                                });
-                        })
-                            .catch(err => {
-                                req.flash('message', message[2][0]);
-                                res.redirect('/');
-                            });
-                    }
-                })
-                    .catch(err => {
-                        req.flash('message', message[2][0]);
-                        res.redirect('/');
-                    });
-            }
-            catch(err){
-                req.flash('message', {type: 'errorMsg', link: 'https://www.movebank.org/', msg: ['Keine Übereinstimmung mit den Daten von ', 'movebank.org', ' gefunden. Überprüfen Sie Ihre Eingaben und versuchen Sie es gegebenenfalls erneut.']});
-                res.redirect('/');
-            }
-        });
-
-        httpResponse.on("error", (error) => {
-            req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler. Versuchen Sie es erneut.'});
-            res.redirect('/');
-
-            throw error;
-        });
-
+        catch(err){
+          message[8] = message[8]+1; // {type: 'errorMsg', link: 'https://www.movebank.org/', msg: ['Keine Übereinstimmung mit den Daten von ', 'movebank.org', ' gefunden. Überprüfen Sie Ihre Eingaben und versuchen Sie es gegebenenfalls erneut.']}
+          asyncLoopHTTPGet(i+1, array, req, res, message);
+        }
+      });
+      httpResponse.on("error", (error, animal, i, req, res) => {
+        message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
+        asyncLoopHTTPGet(i+1, array, req, res, message);
+      });
     });
+  }
+  else{
+    createMessages(message, req, res);
+  }
+}
 
+
+//message is an array
+function createMessages(message, req, res){
+
+  console.log('message', message);
+  if(message[0] > 0){
+    if(message[0] === 1){
+      req.flash('message', {type: 'successMsg', msg: message[0]+' Tier wurde erfolgreich ermittelt und in der Datenbank gespeichert.'});
+    } else {
+      req.flash('message', {type: 'successMsg', msg: message[0]+' Tier-Daten wurden erfolgreich ermittelt und in der Datenbank gespeichert.'});
+    }
+  }
+  if(message[1] > 0){
+    console.log('Nachricht');
+    if(message[1] === 1){
+      req.flash('message', {type: 'successMsg', msg: message[1]+' Tier existiert schon in der Datenbank und ist bereits auf dem aktuellen Stand.'});
+    } else {
+      req.flash('message', {type: 'successMsg', msg: message[1]+' Tiere existieren schon in der Datenbank und sind bereits auf dem aktuellen Stand.'});
+    }
+  }
+  if(message[2] > 0){
+    if(message[2] === 1){
+      req.flash('message', {type: 'successMsg', msg: message[2]+' Tier existiert bereits in der Datenbank und wurde nun aktualisiert.'});
+    } else {
+      req.flash('message', {type: 'successMsg', msg: message[2]+' Tiere existieren bereits in der Datenbank und wurden nun aktualisiert.'});
+    }
+  }
+  if(message[3] > 0){
+    req.flash('message', {type: 'successMsg', link: '/', msg: ['Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt. Gegebenfalls muss die Seite ','neu geladen',' werden.']});
+  }
+  if(message[4] > 0){
+    req.flash('message', {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'});
+  }
+  if(message[5] > 0){
+    if(message[5] === 1){
+      req.flash('message',  {type: 'errorMsg', msg: message[0]+' Tier wurde nicht in der Datenbank gefunden.'});
+    } else {
+      req.flash('message', {type: 'errorMsg', msg: message[0]+' Tiere wurden nicht in der Datenbank gefunden.'});
+    }
+  }
+  if(message[6] > 0){
+    req.flash('message', {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'});
+  }
+  if(message[7] > 0){
+    req.flash('message', {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'});
+  }
+  if(message[8] !== 'undefined' && message[8] > 0){
+    req.flash('message', {type: 'errorMsg', link: 'https://www.movebank.org/', msg: ['Keine Übereinstimmung mit den Daten von ', 'movebank.org', ' gefunden. Überprüfen Sie Ihre Eingaben und versuchen Sie es gegebenenfalls erneut.']});
+  }
+  res.redirect('/');
+}
+
+
+router.post("/movebank/update", authorizationCheck, (req, res, next) => {
+  console.log(req.body);
+  Animal.find({individual_taxon_canonical_name:req.body.individual_taxon_canonical_name}).exec().then(animal => {
+    console.log('animal.length',animal.length);
+    var message = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    asyncLoopHTTPGet(0, animal, req, res, message);
+    console.log(1);
+  })
+  .catch(err => {
+    req.flash('message', {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'});
+    res.redirect('/');
+  });
 });
 
 // ######################################################

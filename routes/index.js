@@ -10,6 +10,8 @@ const EncounterAnimal = require('../models/encounterAnimal');
 const Animal = require('../models/animal');
 // import user model
 const User = require('../models/user');
+// import route model
+const Route = require('../models/route');
 
 /* GET home page. */
 router.get('/', authorizationCheck, (req, res, next) => {
