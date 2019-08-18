@@ -17,14 +17,107 @@
 
       <% include partials/header.ejs %>
 
-      <main role="main" class="container-fluid">
-        <div class="row">
-           <% include partials/message.ejs %>
-           <div class="col-12">
-            <h1><%= title %></h1>
-            <p>Welcome to <%= title %></p>
-          </div>
-        </div>
+      <main role="main" class="container-fluid" id="main">
+                  <div id="message" class="row">
+                    <% include partials/message.ejs %>
+                  </div>
+                  <div class="row">
+                    <div class="col-12" style="margin-top: 20px; margin-bottom: 10px;">
+                      <details>
+                        <summary>Filtern</summary>
+
+                        <form id="formAJAX">
+                          <input type="text" hidden name="currentUserId" value="<%= user._id %>"/>
+                          erstelle
+                          <label style="margin: 0px;">
+                            <input type="radio" name="real"checked/>
+                            alle
+                          </label> oder nur
+                          <label style="margin: 0px;">
+                            <input type="radio" name="real" value="true"/>
+                            tatsächliche
+                          </label> bzw.
+                          <label style="margin: 0px;">
+                            <input type="radio" name="real" value="false"/>
+                            theorethische
+                          </label>
+                           Begegnungen mit
+                            <ul style="list-style: none;">
+                              <li>
+                                <label style="margin: 0px;">
+                                  <input id="user" type="checkbox" onclick="isChecked('user', 'user', <%= JSON.stringify(userAll.length) %>)" checked/>
+                                  allen Nutzern
+                                </label>
+                              </li>
+                              <li>
+                                <label style="margin: 0px;">
+                                  <input id="user 0" type="checkbox" name="user" value="<%= user._id %>" onclick="isChecked('user 0', 'user', <%= JSON.stringify(userAll.length) %>)" checked/>
+                                  mir selbst
+                                </label>
+                              </li>
+                              <% if (typeof(userAll) !== 'undefined') {%>
+                                <% var index = 0 %>
+                                <% for(var i = 0; i < userAll.length; i++) {%>
+                                  <% if (JSON.stringify(userAll[i]._id) !== JSON.stringify(user._id)) {%>
+                                    <li>
+                                      <label style="margin: 0px;">
+                                        <input id="user <%=index+1%>" type="checkbox" name="user" value="<%= userAll[i]._id %>" onclick="isChecked('user <%=index+1%>', 'user', <%= JSON.stringify(userAll.length) %>)" checked/>
+                                        <%= userAll[i].username %>
+                                      </label>
+                                    </li>
+                                    <% index = index + 1 %>
+                                  <% } %>
+                                <% } %>
+                              <% } %>
+                            </ul>
+
+                              <% if (typeof(animal) !== 'undefined' && animal.length > 0) {%>
+                                <ul style="list-style: none;">
+                                  <li>
+                                    <label style="margin: 0px;">
+                                      <input id="animal" type="checkbox" onclick="isChecked('animal', 'animal', <%= JSON.stringify(animal.length) %>)" checked/>
+                                      allen Tierarten
+                                    </label>
+                                  </li>
+                                <% var animals = [] %>
+                                <% for(var i = 0; i < animal.length; i++) {%>
+                                  <% var found = false %>
+                                  <% for(var j = 0; j < animals.length; j++) {%>
+                                    <% if (animal[i].individual_taxon_canonical_name === animals[j]) {%>
+                                      <% found = true %>
+                                    <% } %>
+                                  <% } %>
+                                  <% if (!found) {%>
+                                      <% animals.push(animal[i].individual_taxon_canonical_name) %>
+                                      <li>
+                                        <label style="margin: 0px;">
+                                          <input id="animal <%= j %>" type="checkbox" name="animal" value="<%= animal[i].individual_taxon_canonical_name %>" onclick="isChecked('animal <%= j %>', 'animal', <%= JSON.stringify(animal.length) %>)" checked/>
+                                          <%= animal[i].individual_taxon_canonical_name %>
+                                        </label>
+                                      </li>
+                                  <% } %>
+                                <% } %>
+                                </ul>
+                              <% } %>
+                              <button onclick="ajaxCall(<%= JSON.stringify(user._id) %>)">Filtern</button>
+                        </form><br>
+                        <details>
+                          <summary>Tier-Daten hinzufügen</summary>
+                          <br>
+                          <form action="/api/movebank/all" method="GET">
+                            <button type="submit">Tier-Daten aktualisieren (unausgereift)</button>
+                          </form><br>
+                          <form action="/api/movebank" method="POST">
+                            <label>Study ID</label>
+                            <input type="text" name="study_id" value=""/>
+                            <label>Individual Local Identifier</label>
+                            <input type="text" name="individual_local_identifier" value=""/>
+                            <label>Sensor Typ</label>
+                            <input type="text" name="sensor_type" value=""/>
+                            <button type="submit">Tier-Daten hinzufügen</button>
+                          </form>
+                      </details>
+                  </details>
 
         <div id="encounters" style="margin-top: 20px; margin-bottom: 44.2px;">
         </div>
@@ -36,6 +129,10 @@
 
   </body>
 </html>
+
+<script src="/leaflet/leaflet.js"></script>
+
+<script src="/turf/turf.min.js"></script>
 
 <script src="/jquery/jquery.min.js"></script>
 

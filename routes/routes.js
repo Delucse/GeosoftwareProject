@@ -11,6 +11,9 @@ const authorizationCheck = require('../middleware/authorizationCheck');
 // import route model
 const Route = require('../models/route');
 
+// import animal model
+const Animal = require('../models/animal');
+
 // get create page
 router.get('/create', authorizationCheck, (req, res, next) => {
   res.render('create', {
@@ -177,18 +180,33 @@ router.post('/update', authorizationCheck, (req, res, next) => {
               Route.find({_id: {$ne: id}}).populate('userId', 'username').exec().then(allOtherRoutes => {
                 calculateEncounters(createdRoute[0], allOtherRoutes, 'user');
                 req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen möglichen Nutzer-Begegnungen wurden erfolgreich aktualisiert.'})
-              .catch(err => {
-                  console.log(err);
-                  req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'});
-                  res.redirect('/route/manage/'+req.user._id);
-                });
+                EncounterAnimal.deleteMany({comparedRoute: id}).exec().then(removeAnimals =>{
+                  Animal.find({}).exec().then(allAnimalRoutes => {
+                    for(var i = 0; i < allAnimalRoutes.length; i++){
+                      console.log('allAnimals', allAnimalRoutes[i]);
+                      console.log('dataToCompare', createdRoute);
+                      calculateEncounters(allAnimalRoutes[i], createdRoute, 'animal');
+                    }
+                    req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen möglichen Tier-Begegnungen wurden erfolgreich aktualisiert.'});
+                    res.redirect('/route/manage/'+req.user._id);
+                  })
+                      .catch(err => {
+                        console.log(err);
+                        req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler beim Berechnen möglicher Tier-Begegnungen'});
+                        res.redirect('/route/manage/'+req.user._id);
+                      });
+                })
+                    .catch(err => {
+                      req.flash('message', [{
+                        type: 'infoMsg',
+                        msg: 'Server Fehler. Versuchen Sie es erneut.'
+                      }]);
+                      res.redirect('/route/update/'+id);
+                    });
               })
                   .catch(err => {
                     console.log(err);
-                    req.flash('message', {
-                      type: 'infoMsg',
-                      msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'
-                    });
+                    req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler beim Berechnen möglicher Nutzer-Begegnungen'});
                     res.redirect('/route/manage/'+req.user._id);
                   });
             })
@@ -207,7 +225,8 @@ router.post('/update', authorizationCheck, (req, res, next) => {
                 }]);
                 res.redirect('/route/create/');
               });
-      })
+          res.redirect('/route/manage/'+req.user._id);
+        })
             .catch(err => {
               req.flash('message', [{
                 type: 'infoMsg',
@@ -215,21 +234,19 @@ router.post('/update', authorizationCheck, (req, res, next) => {
               }]);
               res.redirect('/route/update/'+id);
             });
-
       }
       else {
         // error output (req.flash(...))
         res.redirect('/route/update/'+id);
       }
-
     }
-    })
+  })
       .catch(err => {
         // requested route do not exist
-        req.flash('message', {
+        req.flash('message', [{
           type: 'errorMsg',
           msg: 'Die angefragte Route existiert nicht in der Datenbank.'
-        });
+        }]);
         res.redirect('/route/manage/'+req.user._id);
       });
 });
@@ -319,47 +336,55 @@ Route.findById(req.params.routeId).exec().then(route => {
   var userId = route.userId;
   if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
 
-      EncounterUser.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeUser =>{
-      Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
-          req.flash('message',
-            { type: 'successMsg',
-             msg: 'Die Route wurde erfolgreich aus der Datenbank entfernt.'
-           });
+    EncounterUser.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeUser =>{
+      EncounterAnimal.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeAnimal =>{
+        Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
+          req.flash('message', [{ type: 'successMsg',
+            msg: 'Die Route wurde erfolgreich aus der Datenbank entfernt.'
+          }]);
           res.redirect('/route/manage/'+res.locals.user._id);
         })
-    .catch(err => {
-      req.flash('message', {
-         type: 'errorMsg',
-         msg: 'Die angefragte Route existiert nicht in der Datenbank.'
-       });
-      res.redirect('/route/manage/'+res.locals.user._id);
-    });
-  })
+            .catch(err => {
+              req.flash('message', [{
+                type: 'errorMsg',
+                msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+              }]);
+              res.redirect('/route/manage/'+res.locals.user._id);
+            });
+      })
           .catch(err => {
             req.flash('message', [{
               type: 'errorMsg',
               msg: 'Die angefragte Route existiert nicht in der Datenbank.'
             }]);
             res.redirect('/route/manage/'+res.locals.user._id);
-          });}
+          });
+    })
+        .catch(err => {
+          req.flash('message', [{
+            type: 'errorMsg',
+            msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+          }]);
+          res.redirect('/route/manage/'+res.locals.user._id);
+        });
+  }
   else {
-    req.flash('message', {
-       type: 'errorMsg',
-       link: '/user/logout',
-       msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
-     });
+    req.flash('message', [{
+      type: 'errorMsg',
+      link: '/user/logout',
+      msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+    }]);
     res.redirect('/route/manage/'+res.locals.user._id);
   }
 })
-.catch(err => {
-  req.flash('message', {
-     type: 'errorMsg',
-     msg: 'Die angefragte Route existiert nicht in der Datenbank.'
-   });
-  res.redirect('/route/manage/'+res.locals.user._id);
+    .catch(err => {
+      req.flash('message', [{
+        type: 'errorMsg',
+        msg: 'Die angefragte Route existiert nicht in der Datenbank.'
+      }]);
+      res.redirect('/route/manage/'+res.locals.user._id);
+    });
 });
-});
-
 router.get('/manage/:userId', authorizationCheck, (req, res, next) => {
     if(JSON.stringify(req.params.userId) === JSON.stringify(res.locals.user._id)){
       Route.find({userId: req.params.userId}).exec().then(route => {
@@ -474,6 +499,7 @@ function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates
 
 // import encounter models
 const EncounterUser = require('../models/encounterUser');
+const EncounterAnimal = require('../models/encounterAnimal');
 
 function saveEncounter(originalData, dataToCompare, coordinates, encounterType){
 
@@ -558,7 +584,23 @@ function newEncounter(encounterType, originalData, dataToCompare, coordinates, m
         });
   }
   else if(encounterType === 'animal'){
-
+    const newEncounter = new EncounterAnimal({
+      index: index,
+      routeId: originalData._id,
+      animal: originalData.individual_taxon_canonical_name,
+      comparedRoute: dataToCompare._id,
+      comparedRouteName: dataToCompare.name,
+      comparedTo: dataToCompare.userId._id,
+      comparedToName: dataToCompare.userId.username,
+      realEncounter: false,
+      coordinates: coordinates,
+      midCoordinate: midCoordinate,
+      location_info: location_info
+    });
+    newEncounter.save()
+        .catch(err => {
+          console.log(err);
+        });
   }
 }
 

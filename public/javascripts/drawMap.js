@@ -15,6 +15,53 @@ function createElement(elementName, className, id, style, parentElementId, conte
 var layers = [];
 var maps = [];
 
+/**
+ * @desc checks the "checked" status of the checkbox specified by the id and displays the layer on the map if the "checked"-status is true and hide the layer if the "checked" status is false.
+ * @param {string} id specifies the checkbox
+ */
+
+function isChecked(id, specialId, dataLength){
+	if(id !== specialId){
+		if(document.getElementById(id).checked == true){
+			if(allChecked(dataLength, specialId)){
+				document.getElementById(specialId).checked = true;
+			}
+		}
+		else if(document.getElementById(id).checked == false){
+			document.getElementById(specialId).checked = false;
+		}
+	}
+	else{
+		// if the "checked"-status of the "master"-checkbox is true, then every checkbox must have the status true
+		if(document.getElementById(specialId).checked == true){
+			for(var i = 0; i < dataLength; i++){
+				document.getElementById(specialId+" "+i).checked = true;
+			}
+		}
+		// if the "checked"-status of the "master"-checkbox is false, then every checkbox must have the status false
+		else if(document.getElementById(specialId).checked == false){
+			for(var j = 0; j < dataLength; j++){
+				document.getElementById(specialId+" "+j).checked = false;
+			}
+		}
+	}
+}
+
+/**
+ * @desc checks if all checkboxes have the setting "checked == true"
+ * @return {boolean} allChecked true, if every checkbox is checked; false, if that's not the case
+ */
+
+function allChecked(dataLength, specialId){
+	var allChecked = true;
+	for(var i = 0; i < dataLength; i++){
+		if(document.getElementById(specialId+' '+i).checked === false){
+			allChecked = false;
+		}
+	}
+	return allChecked;
+}
+
 function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, queryResultRoute){
 	console.log(queryResultEncountersUser);
 
