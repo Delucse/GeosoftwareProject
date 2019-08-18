@@ -125,6 +125,8 @@ let impressumRouter = require('./routes/impressum');
 app.use('/impressum', impressumRouter);
 let routesRouter = require('./routes/routes');
 app.use('/route', routesRouter);
+let apiRouter = require('./routes/api');
+app.use('/api', apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

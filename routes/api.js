@@ -18,6 +18,8 @@ const EncounterAnimal = require('../models/encounterAnimal');
 // import route model
 const Route = require('../models/route');
 
+const token = require('../config/token');
+
 router.post("/movebank", authorizationCheck, (req, res, next) => {
     var study_id = req.body.study_id;
     var individual_local_identifiers = req.body.individual_local_identifier;
@@ -165,3 +167,188 @@ router.post("/movebank", authorizationCheck, (req, res, next) => {
     });
 
 });
+
+// ######################################################
+// import turf
+const turf = require('@turf/turf');
+
+
+function calculateEncounters(originalData, dataToCompare, encounterType){
+    console.log('originalData', originalData);
+    console.log('dataToCompare', dataToCompare);
+    var line1 = turf.lineString(originalData.coordinates);
+    for(var j = 0; j < dataToCompare.length; j++){
+        // only compare routes with different Id
+        if(originalData._id !== dataToCompare[j]._id){
+            var line2 = turf.lineString(dataToCompare[j].coordinates);
+            var coordinates = [];
+            var coordinatesOverlap = [];
+            calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+            calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+            // only store the real encounters, those who have not an empty coordinate-array
+            if(coordinates.length > 0){
+                saveEncounter(originalData, dataToCompare[j], coordinates, encounterType);
+            }
+        }
+    }
+}
+
+
+function calculateIntersect(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+
+    var intersect = turf.lineIntersect(line1, line2);
+
+    // var coordinatesOverlap = coordinates;
+    for(var i = 0; i < intersect.features.length; i++){
+        var isPointOnLine = false;
+        var point = turf.point(intersect.features[i].geometry.coordinates);
+        for(var j = 0; j < coordinatesOverlap.length; j++){
+            console.log(coordinatesOverlap[j]);
+            var line = turf.lineString(coordinatesOverlap[j]);
+            var distance = turf.pointToLineDistance(point, line, {units: 'kilometers'});
+            if(distance < 0.001){
+                isPointOnLine = true;
+            }
+        }
+        if(!isPointOnLine){
+            coordinates.push([[intersect.features[i].geometry.coordinates[0], intersect.features[i].geometry.coordinates[1]]]);
+        }
+    }
+}
+
+function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+
+    // calculate the possible overlappings
+    var overlapping = turf.lineOverlap(line1, line2);
+
+    if(overlapping.features.length > 0){
+        for(var i = 0; i < overlapping.features.length; i++){
+            var overlapSegment = turf.lineString(overlapping.features[i].geometry.coordinates);
+            var length = turf.length(overlapSegment, {units: 'kilometers'});
+            // in turf it is possible to have a lineString out of exactly the same coordinates, normaly a point!
+            if(length > 0){
+                coordinates.push(overlapping.features[i].geometry.coordinates);
+                coordinatesOverlap.push(overlapping.features[i].geometry.coordinates);
+            }
+        }
+    }
+}
+
+
+// import encounter models
+const EncounterUser = require('../models/encounterUser');
+
+
+function saveEncounter(originalData, dataToCompare, coordinates, encounterType){
+
+    for(var i = 0; i < coordinates.length; i++){
+        var midCoordinate = calculateMidCoordinate(coordinates[i]);
+        here(midCoordinate, coordinates[i], dataToCompare, originalData, encounterType, (i+1));
+    }
+}
+
+
+function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index){
+
+    const category = 'sights-museums';
+    var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
+    console.log('endpoint', endpoint);
+    https.get(endpoint, (httpResponse) => {
+
+        // concatenate updates from datastream
+        var body = "";
+        httpResponse.on("data", (chunk) => {
+            body += chunk;
+        });
+
+        httpResponse.on("end", () => {
+            var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
+            newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index);
+        });
+
+        httpResponse.on("error", (error) => {
+            var location_info = 'keine ortsbezogenen Informationen abrufbar';
+            newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index);
+        });
+
+    });
+}
+
+function createPrettyLocationInfo(location_info, coordinates){
+    var info = location_info.results.items;
+    var content = '<br>';
+    console.log('prettyCoordinates', coordinates);
+    if(coordinates.length > 1){
+        var line = turf.lineString(coordinates);
+        for(var i = 0; i < info.length; i++){
+            var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
+            content = content + '<li>'+info[i].title+', '+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+        }
+    }
+    else if(coordinates.length === 1){
+        var circle = turf.point(coordinates[0]);
+        for(var j = 0; j < info.length; j++){
+            var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
+            content = content + '<li>'+info[j].title+', '+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+        }
+    }
+    return content;
+}
+
+function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index){
+    if(encounterType === 'user'){
+        const newEncounter = new EncounterUser({
+            index: index,
+            routeId: originalData._id,
+            routeName: originalData.name,
+            userId: originalData.userId._id,
+            userName: originalData.userId.username,
+            comparedRoute: dataToCompare._id,
+            comparedRouteName: dataToCompare.name,
+            comparedTo: dataToCompare.userId._id,
+            comparedToName: dataToCompare.userId.username,
+            realEncounter: false,
+            coordinates: coordinates,
+            midCoordinate: midCoordinate,
+            location_info: location_info
+        });
+        newEncounter.save()
+            .catch(err => {
+                console.log(err);
+            });
+    }
+    else if(encounterType === 'animal'){
+        const newEncounter = new EncounterAnimal({
+            index: index,
+            routeId: originalData._id,
+            animal: originalData.individual_taxon_canonical_name,
+            comparedRoute: dataToCompare._id,
+            comparedRouteName: dataToCompare.name,
+            comparedTo: dataToCompare.userId._id,
+            comparedToName: dataToCompare.userId.username,
+            realEncounter: false,
+            coordinates: coordinates,
+            midCoordinate: midCoordinate,
+            location_info: location_info
+        });
+        newEncounter.save()
+            .catch(err => {
+                console.log(err);
+            });
+    }
+}
+
+function calculateMidCoordinate(coordinates){
+    if(coordinates.length > 1){
+        var line = turf.lineString(coordinates);
+        var length = turf.length(line, {units: 'kilometers'});
+        var center = turf.along(line, (length/2), {units: 'kilometers'});
+        return center.geometry.coordinates;
+    }
+    else{
+        return coordinates[0];
+    }
+}
+
+
+module.exports = router;
