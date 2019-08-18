@@ -3,6 +3,13 @@ var router = express.Router();
 
 const authorizationCheck = require('../middleware/authorizationCheck');
 
+// import encounter models
+const EncounterUser = require('../models/encounterUser');
+const EncounterAnimal = require('../models/encounterAnimal');
+// import animal model
+const Animal = require('../models/animal');
+// import user model
+const User = require('../models/user');
 
 /* GET home page. */
 router.get('/', authorizationCheck, (req, res, next) => {
