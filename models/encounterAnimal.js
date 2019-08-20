@@ -6,10 +6,6 @@ const mongoose = require('mongoose');
 
 // schema for animal-user-encounter
 const encounterAnimalSchema = mongoose.Schema({
-  index: {
-    type: Number,
-    required: true
-  },
   routeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Animal',
@@ -37,7 +33,7 @@ const encounterAnimalSchema = mongoose.Schema({
     type: String,
     required: true
   },
-  realEncounter: {
+  realEncounterCompared: {
     type: Boolean,
     required: true
   },

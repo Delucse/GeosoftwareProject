@@ -5,9 +5,10 @@
 const express = require('express');
 const https = require("https");
 const router = express.Router();
-
+const mongoose = require("mongoose");
 
 const authorizationCheck = require('../middleware/authorizationCheck');
+
 
 const token = require('../config/token');
 
@@ -94,9 +95,9 @@ function asyncLoopAnimals(i, movebankData, sensor_type, res, req, message, cb){
           Animal.updateOne({_id: animal[0]._id}, updateAnimal).exec().then(animalUpdate => {
             // update animal was successfull
             message[2] = message[2]+1; // {type: 'successMsg', msg: 'Das angeforderte Tier existiert bereits in der Datenbank und wurde nun aktualisiert.'}
-            Animal.findById(animal[0]._id).exec().then(updatedAnimal => {
+            Animal.find({_id: animal[0]._id}).exec().then(updatedAnimal => {
               Route.find({}).populate('userId', 'username').exec().then(allRoutes => {
-                calculateEncounters(updatedAnimal, allRoutes, 'animal');
+                calculateEncounters(updatedAnimal[0], allRoutes, 'animal');
                 message[3] = message[3]+1; // {type: 'successMsg', link: '/', msg: ['Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt. Gegebenfalls muss die Seite ','neu geladen',' werden.']}
                 asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
               })
@@ -280,187 +281,327 @@ router.post("/movebank/update", authorizationCheck, (req, res, next) => {
   });
 });
 
+
 // ######################################################
 // import turf
 const turf = require('@turf/turf');
 
 
 function calculateEncounters(originalData, dataToCompare, encounterType){
-    console.log('originalData', originalData);
-    console.log('dataToCompare', dataToCompare);
-    var line1 = turf.lineString(originalData.coordinates);
-    for(var j = 0; j < dataToCompare.length; j++){
-        // only compare routes with different Id
-        if(originalData._id !== dataToCompare[j]._id){
-            var line2 = turf.lineString(dataToCompare[j].coordinates);
-            var coordinates = [];
-            var coordinatesOverlap = [];
-            calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
-            calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
-            // only store the real encounters, those who have not an empty coordinate-array
-            if(coordinates.length > 0){
-                saveEncounter(originalData, dataToCompare[j], coordinates, encounterType);
-            }
+
+  var line1 = turf.lineString(originalData.coordinates);
+  console.log('dataToCompare', dataToCompare);
+  for(var j = 0; j < dataToCompare.length; j++){
+    // only compare routes with different Id
+    if(originalData._id !== dataToCompare[j]._id){
+      var line2 = turf.lineString(dataToCompare[j].coordinates);
+      var coordinates = [];
+      var coordinatesOverlap = [];
+      calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      // only store the real encounters, those who have not an empty coordinate-array
+      console.log('Result', coordinates.length);
+      var id = [];
+      if(coordinates.length > 0){
+        for(var i = 0; i < coordinates.length; i++){
+          var midCoordinate = calculateMidCoordinate(coordinates[i]);
+          saveEncounter(originalData, dataToCompare[j], coordinates, encounterType, midCoordinate, i, id);
         }
+      }
+      else {
+        deleteEncounter(encounterType, id, originalData, dataToCompare[j]);
+      }
     }
+  }
 }
 
 
 function calculateIntersect(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
 
-    var intersect = turf.lineIntersect(line1, line2);
+  var intersect = turf.lineIntersect(line1, line2);
 
-    // var coordinatesOverlap = coordinates;
-    for(var i = 0; i < intersect.features.length; i++){
-        var isPointOnLine = false;
-        var point = turf.point(intersect.features[i].geometry.coordinates);
-        for(var j = 0; j < coordinatesOverlap.length; j++){
-            console.log(coordinatesOverlap[j]);
-            var line = turf.lineString(coordinatesOverlap[j]);
-            var distance = turf.pointToLineDistance(point, line, {units: 'kilometers'});
-            if(distance < 0.001){
-                isPointOnLine = true;
-            }
-        }
-        if(!isPointOnLine){
-            coordinates.push([[intersect.features[i].geometry.coordinates[0], intersect.features[i].geometry.coordinates[1]]]);
-        }
+  // var coordinatesOverlap = coordinates;
+  for(var i = 0; i < intersect.features.length; i++){
+    var isPointOnLine = false;
+    var point = turf.point(intersect.features[i].geometry.coordinates);
+    for(var j = 0; j < coordinatesOverlap.length; j++){
+      console.log(coordinatesOverlap[j]);
+      var line = turf.lineString(coordinatesOverlap[j]);
+      var distance = turf.pointToLineDistance(point, line, {units: 'kilometers'});
+      if(distance < 0.001){
+        isPointOnLine = true;
+      }
     }
+    if(!isPointOnLine){
+      coordinates.push([[intersect.features[i].geometry.coordinates[0], intersect.features[i].geometry.coordinates[1]]]);
+    }
+  }
 }
 
 function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
 
-    // calculate the possible overlappings
-    var overlapping = turf.lineOverlap(line1, line2);
+  // calculate the possible overlappings
+  var overlapping = turf.lineOverlap(line1, line2, {tolerance: 0.001}); //tolerance about 1 meters
 
-    if(overlapping.features.length > 0){
-        for(var i = 0; i < overlapping.features.length; i++){
-            var overlapSegment = turf.lineString(overlapping.features[i].geometry.coordinates);
-            var length = turf.length(overlapSegment, {units: 'kilometers'});
-            // in turf it is possible to have a lineString out of exactly the same coordinates, normaly a point!
-            if(length > 0){
-                coordinates.push(overlapping.features[i].geometry.coordinates);
-                coordinatesOverlap.push(overlapping.features[i].geometry.coordinates);
-            }
-        }
+  if(overlapping.features.length > 0){
+    for(var i = 0; i < overlapping.features.length; i++){
+      var overlapSegment = turf.lineString(overlapping.features[i].geometry.coordinates);
+      var length = turf.length(overlapSegment, {units: 'kilometers'});
+      // in turf it is possible to have a lineString out of exactly the same coordinates, normaly a point!
+      if(length > 0){
+        coordinates.push(overlapping.features[i].geometry.coordinates);
+        coordinatesOverlap.push(overlapping.features[i].geometry.coordinates);
+      }
     }
+  }
 }
 
 
 // import encounter models
 const EncounterUser = require('../models/encounterUser');
 
-
-function saveEncounter(originalData, dataToCompare, coordinates, encounterType){
-
-    for(var i = 0; i < coordinates.length; i++){
-        var midCoordinate = calculateMidCoordinate(coordinates[i]);
-        here(midCoordinate, coordinates[i], dataToCompare, originalData, encounterType, (i+1));
+function deleteEncounter(encounterType, id, originalData, dataToCompare){
+  console.log('id3', id);
+  console.log('originalData._id', originalData._id);
+  console.log('dataToCompare._id', dataToCompare._id);
+  var queryOption = {$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
+  {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]};
+  if(id.length > 0){
+    queryOption = {$and:
+      [{$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
+      {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]},
+      {_id: {$not: {$in: id}}}]};
     }
-}
+
+    if(encounterType === 'user'){
+      EncounterUser.find(queryOption).exec().then(possibleDelete => {
+        console.log('possibleDelete', possibleDelete);
+        EncounterUser.deleteMany(queryOption).exec().then()
+        .catch(err => {
+          console.log('löschen Fehler User');
+          console.log(err);
+        });
+      })
+      .catch(err => {
+        console.log(err);
+      });
+    }
+    else if(encounterType === 'animal'){
+      EncounterAnimal.deleteMany(queryOption).exec().then()
+      .catch(err => {
+        console.log('löschen Fehler Animal');
+      });
+    }
+  }
+
+  function updateEncounter(encounterType, originalData, objectId){
+    var update = {};
+
+    if(encounterType === 'user'){
+      EncounterUser.find({_id: objectId}).exec().then(encounter => {
+        if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].routeId)){
+          update.routeName = originalData.name;
+        }
+        else if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].comparedRoute)){
+          update.comparedRouteName = originalData.name;
+        }
+        console.log('update', update);
+        EncounterUser.updateOne({_id: objectId}, update).exec().then()
+        .catch(err => {
+          console.log(err);
+          console.log('Fehler User');
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        console.log('Fehler 1 User');
+      });
+
+    }
+    else if(encounterType === 'animal'){
+      update.comparedRouteName = originalData.name;
+      EncounterAnimal.updateOne({_id: objectId}, update).exec().then()
+      .catch(err => {
+        console.log(err);
+        console.log('Fehler Animal');
+      });
+    }
+  }
+
+  function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found){
+
+    if(i < array.length && !found){
+      if(JSON.stringify(coordinates[index]) === JSON.stringify(array[i].coordinates)){
+        found = true;
+        if(JSON.stringify(originalData._id) === JSON.stringify(array[i].routeId)){
+          console.log(22);
+          if(encounterType === 'user'){
+            if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].routeName)){
+              console.log(23);
+              updateEncounter(encounterType, originalData, array[i]._id);
+            }
+            // necessary to query the encounterType, because the structure of saving is different
+          } else if(encounterType === 'animal'){
+            // compare the name of the route to the routeName of the animalEncounter
+            if(JSON.stringify(dataToCompare.name) !== JSON.stringify(array[i].comparedRouteName)){
+              updateEncounter(encounterType, dataToCompare, array[i]._id);
+            }
+          }
+        }
+        else if(JSON.stringify(originalData._id) === JSON.stringify(array[i].comparedRoute)){
+          console.log(24);
+          if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].comparedRouteName)){
+            console.log(25);
+            updateEncounter(encounterType, originalData, array[i]._id);
+          }
+        }
+        id.push(array[i]._id);
+      }
+      asyncLoopEncounter(i+1, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found);
+    }
+    else {
+      if(!found){
+        var objectId = new mongoose.Types.ObjectId();
+        here(midCoordinate, coordinates[index], dataToCompare, originalData, encounterType, index, objectId);
+        id.push(objectId);
+      }
+      if(index === coordinates.length-1){
+        deleteEncounter(encounterType, id, originalData, dataToCompare);
+      }
+    }
+  }
+
+  function saveEncounter(originalData, dataToCompare, coordinates, encounterType, midCoordinate, index, id){
+
+    if(encounterType === 'user'){
+      console.log('originalData', originalData);
+      EncounterUser.find({$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
+        {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]}).exec().then(encounterUser => {
+          asyncLoopEncounter(0, encounterUser, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
+        })
+        .catch(err => {
+          console.log(err);
+          console.log('Fehler 2 User');
+        });
+      }
+      else if (encounterType === 'animal'){
+        EncounterAnimal.find({$or: [{routeId:originalData._id},{compareTo:dataToCompare._id}]}).exec().then(encounterAnimal => {
+          console.log('encounterAnimal', encounterAnimal);
+          asyncLoopEncounter(0, encounterAnimal, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
+        })
+        .catch(err => {
+          console.log(err);
+          console.log('Fehler 2 Animal');
+        });
+      }
+    }
 
 
-function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index){
 
-    const category = 'sights-museums';
-    var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
-    console.log('endpoint', endpoint);
-    https.get(endpoint, (httpResponse) => {
+    function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index, objectId){
+
+      const category = 'sights-museums';
+      var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
+      console.log('endpoint', endpoint);
+      https.get(endpoint, (httpResponse) => {
 
         // concatenate updates from datastream
         var body = "";
         httpResponse.on("data", (chunk) => {
-            body += chunk;
+          body += chunk;
         });
 
         httpResponse.on("end", () => {
-            var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
-            newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index);
+          var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
+          newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index, objectId);
         });
 
         httpResponse.on("error", (error) => {
-            var location_info = 'keine ortsbezogenen Informationen abrufbar';
-            newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index);
+          var location_info = 'keine ortsbezogenen Informationen abrufbar';
+          newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId);
         });
 
-    });
-}
+      });
+    }
 
-function createPrettyLocationInfo(location_info, coordinates){
-    var info = location_info.results.items;
-    var content = '<br>';
-    console.log('prettyCoordinates', coordinates);
-    if(coordinates.length > 1){
+    function createPrettyLocationInfo(location_info, coordinates){
+      var info = location_info.results.items;
+      var content = '<br>';
+      console.log('prettyCoordinates', coordinates);
+      if(coordinates.length > 1){
         var line = turf.lineString(coordinates);
         for(var i = 0; i < info.length; i++){
-            var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
-            content = content + '<li>'+info[i].title+', '+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+          var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
+          content = content + '<li>'+info[i].title+', '+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</li>';
         }
-    }
-    else if(coordinates.length === 1){
+      }
+      else if(coordinates.length === 1){
         var circle = turf.point(coordinates[0]);
         for(var j = 0; j < info.length; j++){
-            var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
-            content = content + '<li>'+info[j].title+', '+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</li>';
+          var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
+          content = content + '<li>'+info[j].title+', '+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</li>';
         }
+      }
+      return content;
     }
-    return content;
-}
 
-function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index){
-    if(encounterType === 'user'){
+    function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId){
+      if(encounterType === 'user'){
         const newEncounter = new EncounterUser({
-            index: index,
-            routeId: originalData._id,
-            routeName: originalData.name,
-            userId: originalData.userId._id,
-            userName: originalData.userId.username,
-            comparedRoute: dataToCompare._id,
-            comparedRouteName: dataToCompare.name,
-            comparedTo: dataToCompare.userId._id,
-            comparedToName: dataToCompare.userId.username,
-            realEncounter: false,
-            coordinates: coordinates,
-            midCoordinate: midCoordinate,
-            location_info: location_info
+          _id: objectId,
+          routeId: originalData._id,
+          routeName: originalData.name,
+          userId: originalData.userId._id,
+          userName: originalData.userId.username,
+          comparedRoute: dataToCompare._id,
+          comparedRouteName: dataToCompare.name,
+          comparedTo: dataToCompare.userId._id,
+          comparedToName: dataToCompare.userId.username,
+          realEncounter: false,
+          realEncounterCompared: false,
+          coordinates: coordinates,
+          midCoordinate: midCoordinate,
+          location_info: location_info
         });
         newEncounter.save()
-            .catch(err => {
-                console.log(err);
-            });
-    }
-    else if(encounterType === 'animal'){
+        .catch(err => {
+          console.log(err);
+        });
+      }
+      else if(encounterType === 'animal'){
         const newEncounter = new EncounterAnimal({
-            index: index,
-            routeId: originalData._id,
-            animal: originalData.individual_taxon_canonical_name,
-            comparedRoute: dataToCompare._id,
-            comparedRouteName: dataToCompare.name,
-            comparedTo: dataToCompare.userId._id,
-            comparedToName: dataToCompare.userId.username,
-            realEncounter: false,
-            coordinates: coordinates,
-            midCoordinate: midCoordinate,
-            location_info: location_info
+          _id: objectId,
+          routeId: originalData._id,
+          animal: originalData.individual_taxon_canonical_name,
+          animalId: originalData.individual_local_identifier,
+          comparedRoute: dataToCompare._id,
+          comparedRouteName: dataToCompare.name,
+          comparedTo: dataToCompare.userId._id,
+          comparedToName: dataToCompare.userId.username,
+          realEncounterCompared: false,
+          coordinates: coordinates,
+          midCoordinate: midCoordinate,
+          location_info: location_info
         });
         newEncounter.save()
-            .catch(err => {
-                console.log(err);
-            });
+        .catch(err => {
+          console.log(err);
+        });
+      }
     }
-}
 
-function calculateMidCoordinate(coordinates){
-    if(coordinates.length > 1){
+    function calculateMidCoordinate(coordinates){
+      if(coordinates.length > 1){
         var line = turf.lineString(coordinates);
         var length = turf.length(line, {units: 'kilometers'});
         var center = turf.along(line, (length/2), {units: 'kilometers'});
         return center.geometry.coordinates;
-    }
-    else{
+      }
+      else{
         return coordinates[0];
+      }
     }
-}
+
 
 
 module.exports = router;

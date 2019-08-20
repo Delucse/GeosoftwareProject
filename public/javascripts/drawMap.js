@@ -172,7 +172,7 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 		}
 	}
 	else {
-		var message = 'Es sind keine Begegnungen mit den angegebenen Parametern vorhanden'
+		var message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.'
 		var alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
 		createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 		createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);

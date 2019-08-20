@@ -6,10 +6,6 @@ const mongoose = require('mongoose');
 
 // schema for user-user-encounter
 const encounterUserSchema = mongoose.Schema({
-  index: {
-    type: Number,
-    required: true
-  },
   routeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Route',
@@ -50,6 +46,10 @@ const encounterUserSchema = mongoose.Schema({
     type: Boolean,
     required: true
   },
+  realEncounterCompared: {
+      type: Boolean,
+      required: true
+    },
   coordinates: {
     type: Array,
     required: true
