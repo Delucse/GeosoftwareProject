@@ -1,6 +1,9 @@
-// jshint esversion: 6
+// jshint esversion: 8
 // jshint node: true
 "use strict";
+
+// server uses port 3000
+var port = 3000;
 
 var createError = require('http-errors');
 var express = require('express');
@@ -17,21 +20,27 @@ var passport = require('passport');
 
 var config = require('./config/database');
 
-// set up default mongoose connection
-mongoose.connect(config.database, {
-  useNewUrlParser: true,
-  useCreateIndex: true
-});
-// get the default connection
-var db = mongoose.connection;
-// check database connection
-db.once('open', function(){
-  console.log('Connected to MongoDB - itemdb');
-});
-//check for database errors
-db.on('error', function(err){
-  console.log(err);
-});
+(async () => {
+  // set up default ("Docker") mongoose connection
+  await mongoose.connect(config.databaseDocker, {
+    useNewUrlParser: true,
+    useCreateIndex: true
+  }).then(db => {
+      console.log('Connected to MongoDB (databasename: "'+db.connections[0].name+'") on host "'+db.connections[0].host+'" and on port "'+db.connections[0].port+'""');
+  }).catch(async err => {
+    console.log('Connection to '+config.databaseDocker+' failed, try to connect to '+config.databaseLocal);
+    // set up "local" mongoose connection
+    await mongoose.connect(config.databaseLocal, {
+      useNewUrlParser: true,
+      useCreateIndex: true
+    }).then(db => {
+        console.log('Connected to MongoDB (databasename: "'+db.connections[0].name+'") on host "'+db.connections[0].host+'" and on port "'+db.connections[0].port+'""');
+    }).catch(err2nd => {
+      console.log('Error at MongoDB-connection with Docker: '+err);
+      console.log('Error at MongoDB-connection with Localhost: '+err2nd);
+    });
+  });
+})();
 
 
 
@@ -147,9 +156,3 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
-
-// normally has to start in ./bin/www
-// at the moment it does not work ...
-// start server
-var port = 3000;
-var server = app.listen(port, () => console.log("App listening on port " + port + "! (http://localhost:" + port + "/)"));
