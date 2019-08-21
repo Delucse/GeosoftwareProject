@@ -19,6 +19,16 @@ var maps = [];
  * @desc checks the "checked" status of the checkbox specified by the id and displays the layer on the map if the "checked"-status is true and hide the layer if the "checked" status is false.
  * @param {string} id specifies the checkbox
  */
+function allCheckedEncounter(dataLength, elements, input){
+	var allChecked = true;
+	for(var i = 0; i < dataLength; i++){
+		if(elements[i].checked === false){
+			allChecked = false;
+		}
+	}
+	return allChecked;
+}
+
 
 function isChecked(id, specialId, dataLength){
 	if(id !== specialId){
@@ -86,8 +96,10 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 						createElement('p', '', '', '', 'col map '+id, '<b>Route '+queryResultRoute[i].name+'</b>');
 						createElement('div', '', 'map '+id, "height:350px; width: 100%;", 'col map '+id, '');
 						createElement('details', '', 'details encounter '+id, '', 'col map '+id, '');
-						createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, 'Begegnungen');
+						createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, '');
+						addTableWithCheckbox('summary encounter '+id, 'Begegnungen');
 						createElement('ul', '', 'ul encounter '+id, 'margin: 0px; list-style:none;', 'details encounter '+id, '');
+
 						map = createMap('map '+id);
 						maps.push(map);
 						originalRoute = L.polyline(changeCoordinate(queryResultRoute[i].coordinates), {color: 'blue'});
@@ -113,7 +125,8 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 								createElement('li', '', 'li encounter me '+id, '', 'ul encounter '+id, '');
 							}
 							createElement('details', '', 'details encounter me '+id, '', 'li encounter me '+id, '');
-							createElement('summary', '', 'summary encounter me '+id, '', 'details encounter me '+id, 'Begegnungen mit mir selbst');
+							createElement('summary', '', 'summary encounter me '+id, '', 'details encounter me '+id, '');
+							addTableWithCheckbox('summary encounter me '+id, 'Begegnungen mit mir selbst');
 							createElement('ul', '', 'ul encounter me '+id, 'margin: 0px; list-style:none;', 'details encounter me '+id, '');
 						}
 						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], encountersMeLayerGroup, 'me', id, j);
@@ -123,7 +136,8 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 						if(!(document.getElementById('li encounter others '+id))){
 							createElement('li', '', 'li encounter others '+id, '', 'ul encounter '+id, '');
 							createElement('details', '', 'details encounter others '+id, '', 'li encounter others '+id, '');
-							createElement('summary', '', 'summary encounter others '+id, '', 'details encounter others '+id, 'Begegnungen mit anderen Nutzern');
+							createElement('summary', '', 'summary encounter others '+id, '', 'details encounter others '+id, '');
+							addTableWithCheckbox('summary encounter others '+id, 'Begegnungen mit anderen Nutzern');
 							createElement('ul', '', 'ul encounter others '+id, 'margin: 0px; list-style:none;', 'details encounter others '+id, '');
 						}
 						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], encountersOthersLayerGroup, 'others', id, j);
@@ -160,6 +174,7 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 						createElement('li', '', 'li encounter animal '+id, '', 'ul encounter '+id, '');
 						createElement('details', '', 'details encounter animal '+id, '', 'li encounter animal '+id, '');
 						createElement('summary', '', 'summary encounter animal '+id, '', 'details encounter animal '+id, 'Begegnungen mit Tieren');
+						addTableWithCheckbox('summary encounter animal '+id, '');
 						createElement('ul', '', 'ul encounter animal '+id, 'margin: 0px; list-style:none;', 'details encounter animal '+id, '');
 					}
 					drawEncountersOnMap(map, queryResultEncountersAnimal[k], queryResultRoute[i], encountersAnimalsLayerGroup, 'animal', id, k);
@@ -183,23 +198,80 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 function createContent(queryResultEncounter, queryResultRoute, encounterTyp){
 	var content
 	if(encounterTyp === 'me'){
-		content = 'Selbstbegegnung '+queryResultEncounter.index+' auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'".  ';
+		content = 'Selbstbegegnung '+' auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'".  ';
 		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
-			content = 'Selbstbegegnung '+queryResultEncounter.index+' auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'".  ';
+			content = 'Selbstbegegnung '+' auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'".  ';
 		}
 	}
 	else if(encounterTyp === 'others'){
-		content = 'Begegnung '+queryResultEncounter.index+' mit dem Nutzer "'+queryResultEncounter.comparedToName+'" auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'".  ';
+		console.log(queryResultEncounter);
+		content = 'Begegnung '+' mit dem Nutzer "'+queryResultEncounter.comparedToName+'" auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'".  ';
 		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
-			content = 'Begegnung '+queryResultEncounter.index+' mit dem Nutzer "'+queryResultEncounter.userName+'" auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'".  ';
+			content = 'Begegnung '+' mit dem Nutzer "'+queryResultEncounter.userName+'" auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'".  ';
 		}
 	}
 	else {
-		content = 'Begegnung '+queryResultEncounter.index+' mit dem Tier "'+queryResultEncounter.animal+'" auf der Route "'+queryResultEncounter.comparedRouteName+'".  ';
+		content = 'Begegnung '+' mit dem Tier "'+queryResultEncounter.animal+'" auf der Route "'+queryResultEncounter.comparedRouteName+'".  ';
 	}
 	return content;
 }
 
+/**
+ * checks whether the given checkbox was checked or not and adds/removes the layer
+ * @param id id of the checkbox
+ */
+function isCheckedEncounters(id){
+	var element = document.getElementById(id);
+	var elements = document.getElementsByClassName(element.className);
+	if (element.id.match(/summary encounter (me|others|animal)/)){
+		if (element.checked){
+			checkEncounters(element.id);
+			if (allCheckedEncounter(elements.length , elements)){
+				document.getElementById(element.id).checked=true;
+				document.getElementById(element.id.replace(/(me |others |animal )/,'')).checked=true;
+			}
+		}
+		else{
+			document.getElementById(element.id).checked=false;
+			document.getElementById(element.id.replace(/(me |others |animal )/,'')).checked=false;
+			uncheckEncounters(element.id);
+		}
+	}
+	else {
+		if (element.checked){
+			checkEncounters(element.id);
+		}
+		else{
+			uncheckEncounters(element.id);
+		}
+	}
+}
+
+function uncheckEncounters(className){
+	var elements = document.getElementsByClassName(className);
+	for (var i=0;i< elements.length;i++){
+		elements[i].checked=false;
+		elements[i].onchange();
+		if(elements[i].id.includes("encounter me") ||
+			elements[i].id.includes("encounter others") ||
+			elements[i].id.includes("encounter animals")){
+			isCheckedEncounters(elements[i].id);
+		}
+	}
+}
+
+function checkEncounters(className){
+	var elements = document.getElementsByClassName(className);
+	for (var i=0;i< elements.length;i++){
+		elements[i].checked=true;
+		elements[i].onchange();
+		if(elements[i].id.includes("encounter me") ||
+			elements[i].id.includes("encounter others") ||
+			elements[i].id.includes("encounter animals")){
+			isCheckedEncounters(elements[i].id);
+		}
+	}
+}
 
 
 
@@ -227,11 +299,58 @@ function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encoun
 		encountersLayerGroup.push(circle);
 		layers.push(circle);
 	}
+	//erstellen einer Tabelle um die checkboxen und den Inhalt vernünftig anzuzeigen
+	createElement('table','','Table'+encounterTyp+' '+index+' '+index2,'','ul encounter '+encounterTyp+' '+index,'',);
+	var table = document.getElementById('Table'+encounterTyp+' '+index+' '+index2);
+	var row = table.insertRow(0);
+	var cell1 = row.insertCell(0);
+	var cell2 = row.insertCell(1);
+	//erstellen und einbinden der checkbox
+	var checkbox= document.createElement('input');
+	checkbox.id='li encounter checkbox '+encounterTyp+' '+index+' '+index2;
+	checkbox.type="checkbox";
+	checkbox.checked=true;
+	checkbox.setAttribute('class', 'checkbox summary encounter '+encounterTyp+' '+index);
+	cell1.append(checkbox);
+
+	document.getElementById('li encounter checkbox '+encounterTyp+' '+index+' '+index2)
+		.setAttribute('onchange', 'isCheckboxChecked('+'\'li encounter checkbox ' +encounterTyp+' '+index+' '+index2 +'\',' +JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+')');
+
+	//einbinden
 	createElement('li', '', 'li encounter '+encounterTyp+' '+index+' '+index2, '', 'ul encounter '+encounterTyp+' '+index, content);
+	cell2.append(document.getElementById('li encounter '+encounterTyp+' '+index+' '+index2));
 	createElement('span', 'oi oi-zoom-in', 'span encounter '+encounterTyp+' '+index+' '+index2, 'cursor:pointer;', 'li encounter '+encounterTyp+' '+index+' '+index2, '');
 	document.getElementById('span encounter '+encounterTyp+' '+index+' '+index2).setAttribute('onclick', 'zoomIn('+JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+')');
 }
 
+
+function isCheckboxChecked(id, mapIndex, layerIndex) {
+	var element = document.getElementById(id);
+	var map = maps[mapIndex];
+	var layer = layers[layerIndex];
+
+
+	if(element.checked){
+		// anzeigen des Elements
+		layer.addTo(map);
+		// document.getElementById(that.className).checked=true;
+
+		var elements = document.getElementsByClassName(element.className);
+		if (allCheckedEncounter(elements.length , elements)){
+			document.getElementById(element.className).checked=true;
+			document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked=true;
+		}
+		// }
+	}
+	else{
+		layer.remove()
+
+		// console.log(document.getElementById(that.className));
+
+		document.getElementById(element.className).checked=false;
+		document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked=false;
+	}
+}
 
 function zoomIn(mapIndex, layerIndex){
 	//bei Klick checkbox auf true setzen, damit auch etwas angezeigt wird
@@ -241,6 +360,31 @@ function zoomIn(mapIndex, layerIndex){
 	layer.openPopup();
 }
 
+/**
+ * adds a table with a given context to an element with a given id
+ * @param id
+ * @param content
+ */
+function addTableWithCheckbox(id, content) {
+	createElement('table','','Table'+id,'',id,'',);
+	var table = document.getElementById('Table'+id);
+	var row = table.insertRow(0);
+	var cell1 = row.insertCell(0);
+	var cell2 = row.insertCell(1);
+
+	var checkbox= document.createElement('input');
+	checkbox.id='checkbox '+id;
+	checkbox.type="checkbox";
+	checkbox.checked=true;
+	cell1.append(checkbox);
+	if(id.match(/(me|others|animals)/)){
+		console.log(id);
+		checkbox.className=checkbox.id.replace(/(me|others|animals)/, "");
+	}
+	else {}
+	document.getElementById('checkbox '+id).setAttribute('onchange', 'isCheckedEncounters(id)');
+	cell2.innerHTML=content;
+}
 
 /**
 * @desc swaps latitude and longitude and saves the result in a new array and returns it
