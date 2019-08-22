@@ -21,6 +21,113 @@ const EncounterAnimal = require('../models/encounterAnimal');
 const Route = require('../models/route');
 
 
+
+
+// filters encounters
+router.post('/encounter/filter', authorizationCheck, (req, res, next) => {
+  console.log('body', req.body);
+
+  var bodyUser = JSON.parse(req.body.user);
+  var bodyAnimal = JSON.parse(req.body.animal);
+  var bodyReal = req.body.real;
+  var bodyType = req.body.type;
+  var bodyDate = req.body.date;
+
+  // console.log('bodyType', bodyType);
+  console.log('bodyDate', bodyDate);
+
+  if(bodyAnimal.length === 0 && bodyUser.length === 0){
+    res.json('Error');
+  }
+  else {
+
+    var userId = '';
+    var userComparedTo = '';
+    if(bodyUser.length > 0){
+
+      for(var i = 0; i < bodyUser.length-1; i++){
+        userId = userId + "{\"userId\":\""+bodyUser[i]+"\"},";
+        userComparedTo = userComparedTo + "{\"comparedTo\":\""+bodyUser[i]+"\"},";
+      }
+      userId = userId + "{\"userId\":\""+bodyUser[bodyUser.length-1]+"\"}";
+      userId = {$or:JSON.parse('['+userId+']')};
+      userComparedTo = userComparedTo + "{\"comparedTo\":\""+bodyUser[bodyUser.length-1]+"\"}";
+      userComparedTo = {$or:JSON.parse('['+userComparedTo+']')};
+    }
+    else {
+      userId = {userId:bodyUser};
+      userComparedTo = {comparedTo:bodyUser};
+    }
+
+    var user = {$or: [{$and:[{userId:req.body.currentUserId},userComparedTo]},{$and:[userId,{comparedTo:req.body.currentUserId}]}]};
+
+
+    var animalName = '';
+    if(bodyAnimal.length > 0){
+      for(var j = 0; j < bodyAnimal.length-1; j++){
+        animalName = animalName + "{\"animal\":\""+bodyAnimal[j]+"\"},";
+      }
+      animalName = animalName + "{\"animal\":\""+bodyAnimal[bodyAnimal.length-1]+"\"}";
+      animalName = {$or:JSON.parse('['+animalName+']')};
+    }
+    else {
+      animalName = {animal:bodyAnimal};
+    }
+
+    var animal = {$and:[{comparedTo:req.body.currentUserId},animalName]};
+
+
+    var optionUser;
+    var optionAnimal;
+    var optionReal;
+    if(bodyReal){
+      optionReal = {$or: [{$and:[{userId:req.body.currentUserId},{realEncounter:bodyReal.replace(/"/g, '')}]},
+                          {$and:[{comparedTo:req.body.currentUserId},{realEncounterCompared:bodyReal.replace(/"/g, '')}]}]};
+      optionUser = {$and:[optionReal, user]};
+      optionAnimal = {$and:[optionReal, animal]};
+    } else {
+      optionUser = user;
+      optionAnimal = animal;
+    }
+
+    var optionRoute = {$and: [{userId: req.body.currentUserId}, {date: {$lt: bodyDate}}]};
+    if(bodyType){
+      console.log('bodyType', bodyType.replace(/"/g, ''));
+      optionRoute = {$and: [{type:bodyType.replace(/"/g, '')}, {userId: req.body.currentUserId}, {date: {$lt: bodyDate}}]};
+    }
+
+
+    console.log('option', optionUser);
+    Route.find(optionRoute).exec().then(userRoutes => {
+      if(userRoutes.length > 0){
+        EncounterUser.find(optionUser).exec().then(resultUserQuery => {
+          EncounterAnimal.find(optionAnimal).exec().then(resultAnimalQuery => {
+              var result = [];
+              result.push(resultUserQuery);
+              result.push(resultAnimalQuery);
+              result.push(userRoutes);
+              res.json(result);
+            })
+            .catch(err => {
+              res.json(err);
+            });
+          })
+          .catch(err => {
+            res.json(err);
+          });
+      }
+      else {
+        res.json('Info');
+      }
+    })
+    .catch(err => {
+      res.json(err);
+    });
+  }
+});
+
+
+
 router.post("/movebank", authorizationCheck, (req, res, next) => {
   console.log('body', req.body);
   var study_id = req.body.study_id;

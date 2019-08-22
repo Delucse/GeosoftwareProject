@@ -1,3 +1,7 @@
+// jshint esversion: 6
+// jshint node: true
+"use strict";
+
 var express = require('express');
 var router = express.Router();
 
@@ -22,20 +26,15 @@ router.get('/', authorizationCheck, (req, res, next) => {
       Route.find({userId: id}).exec().then(userRoutes => {
         // result for all relevant user-user encounters for current user
         EncounterUser.find({$or: [{userId: id}, {comparedTo: id}]})
-        // .populate('routeId', 'name')
-        // .populate('comparedRoute', 'name')
-        // .populate('userId', 'username')
-        // .populate('comparedTo', 'username')
+
         .exec().then(encountersUser => {
 
           // result for all relevant user-animal encounters for current user
           EncounterAnimal.find({comparedTo: id})
-          // .populate('routeId', 'individual_taxon_canonical_name')
-          // .populate('comparedRoute', 'name')
-          // .populate('comparedTo', 'username')
+
           .exec().then(encountersAnimal => {
 
-            Animal.find().exec().then(animals => {
+            Animal.find().distinct('individual_taxon_canonical_name').exec().then(animals => {
 
               res.render('index', {
                 title: 'Start',
