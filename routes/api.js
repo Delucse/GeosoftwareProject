@@ -82,7 +82,7 @@ router.post('/encounter/filter', authorizationCheck, (req, res, next) => {
     var optionReal;
     if(bodyReal){
       optionReal = {$or: [{$and:[{userId:req.body.currentUserId},{realEncounter:bodyReal.replace(/"/g, '')}]},
-                          {$and:[{comparedTo:req.body.currentUserId},{realEncounterCompared:bodyReal.replace(/"/g, '')}]}]};
+          {$and:[{comparedTo:req.body.currentUserId},{realEncounterCompared:bodyReal.replace(/"/g, '')}]}]};
       optionUser = {$and:[optionReal, user]};
       optionAnimal = {$and:[optionReal, animal]};
     } else {
@@ -102,27 +102,27 @@ router.post('/encounter/filter', authorizationCheck, (req, res, next) => {
       if(userRoutes.length > 0){
         EncounterUser.find(optionUser).exec().then(resultUserQuery => {
           EncounterAnimal.find(optionAnimal).exec().then(resultAnimalQuery => {
-              var result = [];
-              result.push(resultUserQuery);
-              result.push(resultAnimalQuery);
-              result.push(userRoutes);
-              res.json(result);
-            })
+            var result = [];
+            result.push(resultUserQuery);
+            result.push(resultAnimalQuery);
+            result.push(userRoutes);
+            res.json(result);
+          })
+              .catch(err => {
+                res.json(err);
+              });
+        })
             .catch(err => {
               res.json(err);
             });
-          })
-          .catch(err => {
-            res.json(err);
-          });
       }
       else {
         res.json('Info');
       }
     })
-    .catch(err => {
-      res.json(err);
-    });
+        .catch(err => {
+          res.json(err);
+        });
   }
 });
 
@@ -208,20 +208,20 @@ function asyncLoopAnimals(i, movebankData, sensor_type, res, req, message, cb){
                 message[3] = message[3]+1; // {type: 'successMsg', link: '/', msg: ['Alle zugehörigen Tier-Begegnungen wurden erfolgreich ermittelt. Gegebenfalls muss die Seite ','neu geladen',' werden.']}
                 asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
               })
+                  .catch(err => {
+                    message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+                    asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+                  });
+            })
+                .catch(err => {
+                  message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
+                  asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+                });
+          })
               .catch(err => {
-                message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+                message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
                 asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
               });
-            })
-            .catch(err => {
-              message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
-              asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
-            });
-          })
-          .catch(err => {
-            message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
-            asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
-          });
         }
         else{
           // do not update the database-document
@@ -248,26 +248,26 @@ function asyncLoopAnimals(i, movebankData, sensor_type, res, req, message, cb){
               message[3] = message[3]+1;
               asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
             })
+                .catch(err => {
+                  message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+                  asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+                });
+          })
+              .catch(err => {
+                message[5] = message[5]+1;
+                asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+              });
+        })
             .catch(err => {
-              message[4] = message[4]+1; // {type: 'errorMsg', msg: 'Mögliche Tier-Begegnungen konnten nicht berechnet werden.'}
+              message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
               asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
             });
-          })
-          .catch(err => {
-            message[5] = message[5]+1;
-            asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
-          });
-        })
-        .catch(err => {
-          message[7] = message[7]+1; // {type: 'infoMsg', msg: 'Server Fehler. Gegebenfalls ist der Speicherbedarf zu groß (max. 10 MB).'}
-          asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
-        });
       }
     })
-    .catch(err  => {
-      message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
-      asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
-    });
+        .catch(err  => {
+          message[6] = message[6]+1; // {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'}
+          asyncLoopAnimals(i+1, movebankData, sensor_type, res, req, message, cb);
+        });
   }
   else {
     cb();
@@ -382,10 +382,10 @@ router.post("/movebank/update", authorizationCheck, (req, res, next) => {
     asyncLoopHTTPGet(0, animal, req, res, message);
     console.log(1);
   })
-  .catch(err => {
-    req.flash('message', {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'});
-    res.redirect('/');
-  });
+      .catch(err => {
+        req.flash('message', {type: 'infoMsg', msg: 'Server Fehler. Versuchen Sie es erneut.'});
+        res.redirect('/');
+      });
 });
 
 
@@ -472,242 +472,242 @@ function deleteEncounter(encounterType, id, originalData, dataToCompare){
   console.log('originalData._id', originalData._id);
   console.log('dataToCompare._id', dataToCompare._id);
   var queryOption = {$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
-  {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]};
+      {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]};
   if(id.length > 0){
     queryOption = {$and:
-      [{$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
-      {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]},
-      {_id: {$not: {$in: id}}}]};
-    }
-
-    if(encounterType === 'user'){
-      EncounterUser.find(queryOption).exec().then(possibleDelete => {
-        console.log('possibleDelete', possibleDelete);
-        EncounterUser.deleteMany(queryOption).exec().then()
-        .catch(err => {
-          console.log('löschen Fehler User');
-          console.log(err);
-        });
-      })
-      .catch(err => {
-        console.log(err);
-      });
-    }
-    else if(encounterType === 'animal'){
-      EncounterAnimal.deleteMany(queryOption).exec().then()
-      .catch(err => {
-        console.log('löschen Fehler Animal');
-      });
-    }
+          [{$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
+              {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]},
+            {_id: {$not: {$in: id}}}]};
   }
 
-  function updateEncounter(encounterType, originalData, objectId){
-    var update = {};
-
-    if(encounterType === 'user'){
-      EncounterUser.find({_id: objectId}).exec().then(encounter => {
-        if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].routeId)){
-          update.routeName = originalData.name;
-        }
-        else if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].comparedRoute)){
-          update.comparedRouteName = originalData.name;
-        }
-        console.log('update', update);
-        EncounterUser.updateOne({_id: objectId}, update).exec().then()
+  if(encounterType === 'user'){
+    EncounterUser.find(queryOption).exec().then(possibleDelete => {
+      console.log('possibleDelete', possibleDelete);
+      EncounterUser.deleteMany(queryOption).exec().then()
+          .catch(err => {
+            console.log('löschen Fehler User');
+            console.log(err);
+          });
+    })
         .catch(err => {
           console.log(err);
-          console.log('Fehler User');
         });
-      })
-      .catch(err => {
-        console.log(err);
-        console.log('Fehler 1 User');
-      });
-
-    }
-    else if(encounterType === 'animal'){
-      update.comparedRouteName = originalData.name;
-      EncounterAnimal.updateOne({_id: objectId}, update).exec().then()
-      .catch(err => {
-        console.log(err);
-        console.log('Fehler Animal');
-      });
-    }
   }
+  else if(encounterType === 'animal'){
+    EncounterAnimal.deleteMany(queryOption).exec().then()
+        .catch(err => {
+          console.log('löschen Fehler Animal');
+        });
+  }
+}
 
-  function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found){
+function updateEncounter(encounterType, originalData, objectId){
+  var update = {};
 
-    if(i < array.length && !found){
-      if(JSON.stringify(coordinates[index]) === JSON.stringify(array[i].coordinates)){
-        found = true;
-        if(JSON.stringify(originalData._id) === JSON.stringify(array[i].routeId)){
-          console.log(22);
-          if(encounterType === 'user'){
-            if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].routeName)){
-              console.log(23);
-              updateEncounter(encounterType, originalData, array[i]._id);
-            }
-            // necessary to query the encounterType, because the structure of saving is different
-          } else if(encounterType === 'animal'){
-            // compare the name of the route to the routeName of the animalEncounter
-            if(JSON.stringify(dataToCompare.name) !== JSON.stringify(array[i].comparedRouteName)){
-              updateEncounter(encounterType, dataToCompare, array[i]._id);
-            }
-          }
-        }
-        else if(JSON.stringify(originalData._id) === JSON.stringify(array[i].comparedRoute)){
-          console.log(24);
-          if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].comparedRouteName)){
-            console.log(25);
+  if(encounterType === 'user'){
+    EncounterUser.find({_id: objectId}).exec().then(encounter => {
+      if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].routeId)){
+        update.routeName = originalData.name;
+      }
+      else if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].comparedRoute)){
+        update.comparedRouteName = originalData.name;
+      }
+      console.log('update', update);
+      EncounterUser.updateOne({_id: objectId}, update).exec().then()
+          .catch(err => {
+            console.log(err);
+            console.log('Fehler User');
+          });
+    })
+        .catch(err => {
+          console.log(err);
+          console.log('Fehler 1 User');
+        });
+
+  }
+  else if(encounterType === 'animal'){
+    update.comparedRouteName = originalData.name;
+    EncounterAnimal.updateOne({_id: objectId}, update).exec().then()
+        .catch(err => {
+          console.log(err);
+          console.log('Fehler Animal');
+        });
+  }
+}
+
+function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found){
+
+  if(i < array.length && !found){
+    if(JSON.stringify(coordinates[index]) === JSON.stringify(array[i].coordinates)){
+      found = true;
+      if(JSON.stringify(originalData._id) === JSON.stringify(array[i].routeId)){
+        console.log(22);
+        if(encounterType === 'user'){
+          if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].routeName)){
+            console.log(23);
             updateEncounter(encounterType, originalData, array[i]._id);
           }
+          // necessary to query the encounterType, because the structure of saving is different
+        } else if(encounterType === 'animal'){
+          // compare the name of the route to the routeName of the animalEncounter
+          if(JSON.stringify(dataToCompare.name) !== JSON.stringify(array[i].comparedRouteName)){
+            updateEncounter(encounterType, dataToCompare, array[i]._id);
+          }
         }
-        id.push(array[i]._id);
       }
-      asyncLoopEncounter(i+1, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found);
+      else if(JSON.stringify(originalData._id) === JSON.stringify(array[i].comparedRoute)){
+        console.log(24);
+        if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].comparedRouteName)){
+          console.log(25);
+          updateEncounter(encounterType, originalData, array[i]._id);
+        }
+      }
+      id.push(array[i]._id);
     }
-    else {
-      if(!found){
-        var objectId = new mongoose.Types.ObjectId();
-        here(midCoordinate, coordinates[index], dataToCompare, originalData, encounterType, index, objectId);
-        id.push(objectId);
-      }
-      if(index === coordinates.length-1){
-        deleteEncounter(encounterType, id, originalData, dataToCompare);
-      }
+    asyncLoopEncounter(i+1, array, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, found);
+  }
+  else {
+    if(!found){
+      var objectId = new mongoose.Types.ObjectId();
+      here(midCoordinate, coordinates[index], dataToCompare, originalData, encounterType, index, objectId);
+      id.push(objectId);
+    }
+    if(index === coordinates.length-1){
+      deleteEncounter(encounterType, id, originalData, dataToCompare);
     }
   }
+}
 
-  function saveEncounter(originalData, dataToCompare, coordinates, encounterType, midCoordinate, index, id){
+function saveEncounter(originalData, dataToCompare, coordinates, encounterType, midCoordinate, index, id){
 
-    if(encounterType === 'user'){
-      console.log('originalData', originalData);
-      EncounterUser.find({$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
+  if(encounterType === 'user'){
+    console.log('originalData', originalData);
+    EncounterUser.find({$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
         {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]}).exec().then(encounterUser => {
-          asyncLoopEncounter(0, encounterUser, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
-        })
+      asyncLoopEncounter(0, encounterUser, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
+    })
         .catch(err => {
           console.log(err);
           console.log('Fehler 2 User');
         });
-      }
-      else if (encounterType === 'animal'){
-        EncounterAnimal.find({$or: [{routeId:originalData._id},{compareTo:dataToCompare._id}]}).exec().then(encounterAnimal => {
-          console.log('encounterAnimal', encounterAnimal);
-          asyncLoopEncounter(0, encounterAnimal, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
-        })
+  }
+  else if (encounterType === 'animal'){
+    EncounterAnimal.find({$or: [{routeId:originalData._id},{compareTo:dataToCompare._id}]}).exec().then(encounterAnimal => {
+      console.log('encounterAnimal', encounterAnimal);
+      asyncLoopEncounter(0, encounterAnimal, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
+    })
         .catch(err => {
           console.log(err);
           console.log('Fehler 2 Animal');
         });
-      }
+  }
+}
+
+
+
+function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index, objectId){
+
+  const category = 'sights-museums';
+  var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
+  console.log('endpoint', endpoint);
+  https.get(endpoint, (httpResponse) => {
+
+    // concatenate updates from datastream
+    var body = "";
+    httpResponse.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    httpResponse.on("end", () => {
+      var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
+      newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index, objectId);
+    });
+
+    httpResponse.on("error", (error) => {
+      var location_info = 'keine ortsbezogenen Informationen abrufbar';
+      newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId);
+    });
+
+  });
+}
+
+function createPrettyLocationInfo(location_info, coordinates){
+  var info = location_info.results.items;
+  var content = '';
+  console.log('prettyCoordinates', coordinates);
+  if(coordinates.length > 1){
+    var line = turf.lineString(coordinates);
+    for(var i = 0; i < info.length; i++){
+      var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
+      content = content + '<li>• '+info[i].title+', <text style="font-size: 10pt;">'+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</text></li>';
     }
-
-
-
-    function here(midCoordinate, coordinates, dataToCompare, originalData, encounterType, index, objectId){
-
-      const category = 'sights-museums';
-      var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
-      console.log('endpoint', endpoint);
-      https.get(endpoint, (httpResponse) => {
-
-        // concatenate updates from datastream
-        var body = "";
-        httpResponse.on("data", (chunk) => {
-          body += chunk;
-        });
-
-        httpResponse.on("end", () => {
-          var location_info = createPrettyLocationInfo(JSON.parse(body), coordinates);
-          newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, JSON.stringify(location_info), index, objectId);
-        });
-
-        httpResponse.on("error", (error) => {
-          var location_info = 'keine ortsbezogenen Informationen abrufbar';
-          newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId);
-        });
-
-      });
+  }
+  else if(coordinates.length === 1){
+    var circle = turf.point(coordinates[0]);
+    for(var j = 0; j < info.length; j++){
+      var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
+      content = content + '<li> •'+info[j].title+', <text style="font-size: 10pt;">'+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</text></li>';
     }
+  }
+  return content;
+}
 
-    function createPrettyLocationInfo(location_info, coordinates){
-      var info = location_info.results.items;
-      var content = '<br>';
-      console.log('prettyCoordinates', coordinates);
-      if(coordinates.length > 1){
-        var line = turf.lineString(coordinates);
-        for(var i = 0; i < info.length; i++){
-          var polylinePoint = turf.point([info[i].position[1],info[i].position[0]]);
-          content = content + '<li>'+info[i].title+', '+info[i].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.pointToLineDistance(polylinePoint, line, {units: 'kilometers'})).toFixed(2)+' km)</li>';
-        }
-      }
-      else if(coordinates.length === 1){
-        var circle = turf.point(coordinates[0]);
-        for(var j = 0; j < info.length; j++){
-          var circlePoint = turf.point([info[j].position[1],info[j].position[0]]);
-          content = content + '<li>'+info[j].title+', '+info[j].vicinity.replace(/<br\/>/g, ", ")+' (Entfernung: '+parseFloat(turf.distance(circlePoint, circle, {units: 'kilometers'})).toFixed(2)+' km)</li>';
-        }
-      }
-      return content;
-    }
-
-    function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId){
-      if(encounterType === 'user'){
-        const newEncounter = new EncounterUser({
-          _id: objectId,
-          routeId: originalData._id,
-          routeName: originalData.name,
-          userId: originalData.userId._id,
-          userName: originalData.userId.username,
-          comparedRoute: dataToCompare._id,
-          comparedRouteName: dataToCompare.name,
-          comparedTo: dataToCompare.userId._id,
-          comparedToName: dataToCompare.userId.username,
-          realEncounter: false,
-          realEncounterCompared: false,
-          coordinates: coordinates,
-          midCoordinate: midCoordinate,
-          location_info: location_info
-        });
-        newEncounter.save()
+function newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId){
+  if(encounterType === 'user'){
+    const newEncounter = new EncounterUser({
+      _id: objectId,
+      routeId: originalData._id,
+      routeName: originalData.name,
+      userId: originalData.userId._id,
+      userName: originalData.userId.username,
+      comparedRoute: dataToCompare._id,
+      comparedRouteName: dataToCompare.name,
+      comparedTo: dataToCompare.userId._id,
+      comparedToName: dataToCompare.userId.username,
+      realEncounter: false,
+      realEncounterCompared: false,
+      coordinates: coordinates,
+      midCoordinate: midCoordinate,
+      location_info: location_info
+    });
+    newEncounter.save()
         .catch(err => {
           console.log(err);
         });
-      }
-      else if(encounterType === 'animal'){
-        const newEncounter = new EncounterAnimal({
-          _id: objectId,
-          routeId: originalData._id,
-          animal: originalData.individual_taxon_canonical_name,
-          animalId: originalData.individual_local_identifier,
-          comparedRoute: dataToCompare._id,
-          comparedRouteName: dataToCompare.name,
-          comparedTo: dataToCompare.userId._id,
-          comparedToName: dataToCompare.userId.username,
-          realEncounterCompared: false,
-          coordinates: coordinates,
-          midCoordinate: midCoordinate,
-          location_info: location_info
-        });
-        newEncounter.save()
+  }
+  else if(encounterType === 'animal'){
+    const newEncounter = new EncounterAnimal({
+      _id: objectId,
+      routeId: originalData._id,
+      animal: originalData.individual_taxon_canonical_name,
+      animalId: originalData.individual_local_identifier,
+      comparedRoute: dataToCompare._id,
+      comparedRouteName: dataToCompare.name,
+      comparedTo: dataToCompare.userId._id,
+      comparedToName: dataToCompare.userId.username,
+      realEncounterCompared: false,
+      coordinates: coordinates,
+      midCoordinate: midCoordinate,
+      location_info: location_info
+    });
+    newEncounter.save()
         .catch(err => {
           console.log(err);
         });
-      }
-    }
+  }
+}
 
-    function calculateMidCoordinate(coordinates){
-      if(coordinates.length > 1){
-        var line = turf.lineString(coordinates);
-        var length = turf.length(line, {units: 'kilometers'});
-        var center = turf.along(line, (length/2), {units: 'kilometers'});
-        return center.geometry.coordinates;
-      }
-      else{
-        return coordinates[0];
-      }
-    }
+function calculateMidCoordinate(coordinates){
+  if(coordinates.length > 1){
+    var line = turf.lineString(coordinates);
+    var length = turf.length(line, {units: 'kilometers'});
+    var center = turf.along(line, (length/2), {units: 'kilometers'});
+    return center.geometry.coordinates;
+  }
+  else{
+    return coordinates[0];
+  }
+}
 
 
 

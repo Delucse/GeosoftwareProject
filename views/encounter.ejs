@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+  <title><%= title %></title>
+
+  <meta name="author" content="Luc Niski"/>
+  <meta charset="UTF-8">
+
+  <% include partials/stylesheet.ejs %>
+
+  <link rel="stylesheet" href="/leaflet/leaflet.css"/>
+
+
+</head>
+
+
+  <body onload = "drawEncounters(<%= JSON.stringify(encountersUser) %>, <%= JSON.stringify(encountersAnimal) %>, <%= JSON.stringify(userRoutes) %>, true)">
+
+
+          <div class="wrapper">
+
+          <% include partials/header.ejs %>
+
+          <main role="main" class="container-fluid" id="main">
+            <div id="message" class="row">
+              <% include partials/message.ejs %>
+            </div>
+            <div class="row">
+              <div class="col-12" style="margin-top: 20px; margin-bottom: 10px;">
+                <% if (typeof(encountersUser) !== 'undefined' &&
+                       typeof(encountersAnimal) !== 'undefined' &&
+                       typeof(userRoutes) !== 'undefined' &&
+                       encountersUser.length + encountersAnimal.length + userRoutes.length > 1) {%>
+                  <b>Begegnung von Nutzer "<%= userRoutes[0].userId.username %>"</b>
+                <% } %>
+                <div id="encounters" style="margin-top: 20px; margin-bottom: 44.2px;">
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <% include partials/footer.ejs %>
+
+      </body>
+
+      </html>
+
+      <script src="/leaflet/leaflet.js"></script>
+
+      <script src="/turf/turf.min.js"></script>
+
+      <script src="/jquery/jquery.min.js"></script>
+
+      <script src="/bootstrap/js/bootstrap.min.js"></script>
+
+      <script src="/javascripts/drawMap.js"></script>

@@ -19,7 +19,7 @@ const Route = require('../models/route');
 
 /* GET home page. */
 router.get('/', authorizationCheck, (req, res, next) => {
- var id = res.locals.user._id;
+  var id = res.locals.user._id;
   console.log(res.params);
   if(id !== null){
     User.find({}).select('_id username').exec().then(user => {
@@ -27,17 +27,17 @@ router.get('/', authorizationCheck, (req, res, next) => {
         // result for all relevant user-user encounters for current user
         EncounterUser.find({$or: [{userId: id}, {comparedTo: id}]})
 
-        .exec().then(encountersUser => {
+            .exec().then(encountersUser => {
 
           // result for all relevant user-animal encounters for current user
           EncounterAnimal.find({comparedTo: id})
 
-          .exec().then(encountersAnimal => {
+              .exec().then(encountersAnimal => {
 
             Animal.find().distinct('individual_taxon_canonical_name').exec().then(animals => {
 
               res.render('index', {
-                title: 'Start',
+                title: 'Begegnungen',
                 userRoutes: userRoutes,
                 userAll: user,
                 encountersUser: encountersUser,
@@ -46,25 +46,25 @@ router.get('/', authorizationCheck, (req, res, next) => {
                 message: req.flash('message')
               });
             })
-            .catch(err => {
-              console.log(1, err);
-            });
+                .catch(err => {
+                  console.log(1, err);
+                });
           })
-          .catch(err => {
-            console.log(2, err);
-          });
+              .catch(err => {
+                console.log(2, err);
+              });
         })
-        .catch(err => {
-          console.log(3, err);
-        });
+            .catch(err => {
+              console.log(3, err);
+            });
       })
-      .catch(err => {
-        console.log(4, err);
-      });
+          .catch(err => {
+            console.log(4, err);
+          });
     })
-    .catch(err => {
-      console.log(5, err);
-    });
+        .catch(err => {
+          console.log(5, err);
+        });
   }
   else {
     res.render('index', {
