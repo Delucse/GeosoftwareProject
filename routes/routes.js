@@ -59,7 +59,6 @@ router.post('/create', authorizationCheck, (req, res, next) => {
       coordinates: coordinates
     });
     newRoute.save().then(result => {
-      console.log(objectId);
       req.flash('message', {
         type: 'successMsg',
         msg: 'Die neu angelelgte Route wurde erfolgreich der Datenbank hinzugefügt.'
@@ -67,7 +66,6 @@ router.post('/create', authorizationCheck, (req, res, next) => {
       //calculate possible new encounters
       Route.find({_id: objectId}).populate('userId', 'username').exec().then(createdRoute => {
         Route.find({_id: {$ne: objectId}}).populate('userId', 'username').exec().then(allOtherRoutes => {
-          console.log('originalData', createdRoute[0]);
           calculateEncounters(createdRoute[0], allOtherRoutes, 'user');
           req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen möglichen Nutzer-Begegnungen wurden erfolgreich ermittelt.'});
 
@@ -183,7 +181,6 @@ router.post('/update', authorizationCheck, (req, res, next) => {
           if(route.name !== req.body.name || JSON.stringify(route.coordinates) !== JSON.stringify(JSON.parse(req.body.geometry))){
             Route.find({_id: id}).populate('userId', 'username').exec().then(createdRoute => {
               Route.find({_id: {$ne: id}}).populate('userId', 'username').exec().then(allOtherRoutes => {
-                console.log('originalDataUpdate', createdRoute[0]);
                 calculateEncounters(createdRoute[0], allOtherRoutes, 'user');
                 req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen möglichen Nutzer-Begegnungen wurden erfolgreich aktualisiert.'});
                 Animal.find({}).exec().then(allAnimalRoutes => {
@@ -247,7 +244,6 @@ router.post('/update', authorizationCheck, (req, res, next) => {
  */
 function createFeatureCollection(input){
   var featureCollection = "";
-  console.log('length', input[input.length-1]);
   if(input.length > 0){
     var lineString = "";
     for(var i = 0; i < input.length-1; i++){
@@ -389,7 +385,6 @@ router.get('/manage/:userId', authorizationCheck, (req, res, next) => {
           message: req.flash('message')
         });
       } else {
-        console.log('ResultRoute', route);
         res.render('manager', {
           title: 'Verwaltung',
           data: route,
@@ -430,7 +425,6 @@ const turf = require('@turf/turf');
 function calculateEncounters(originalData, dataToCompare, encounterType){
 
   var line1 = turf.lineString(originalData.coordinates);
-  console.log('dataToCompare', dataToCompare);
   for(var j = 0; j < dataToCompare.length; j++){
     // only compare routes with different Id
     if(originalData._id !== dataToCompare[j]._id){
@@ -440,7 +434,6 @@ function calculateEncounters(originalData, dataToCompare, encounterType){
       calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
       calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
       // only store the real encounters, those who have not an empty coordinate-array
-      console.log('Result', coordinates.length);
       var id = [];
       if(coordinates.length > 0){
         for(var i = 0; i < coordinates.length; i++){
@@ -465,7 +458,6 @@ function calculateIntersect(originalData, dataToCompare, line1, line2, coordinat
     var isPointOnLine = false;
     var point = turf.point(intersect.features[i].geometry.coordinates);
     for(var j = 0; j < coordinatesOverlap.length; j++){
-      console.log(coordinatesOverlap[j]);
       var line = turf.lineString(coordinatesOverlap[j]);
       var distance = turf.pointToLineDistance(point, line, {units: 'kilometers'});
       if(distance < 0.001){
@@ -503,9 +495,6 @@ const EncounterAnimal = require('../models/encounterAnimal');
 
 
 function deleteEncounter(encounterType, id, originalData, dataToCompare){
-  console.log('id3', id);
-  console.log('originalData._id', originalData._id);
-  console.log('dataToCompare._id', dataToCompare._id);
   var queryOption = {$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
       {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]};
   if(id.length > 0){
@@ -517,10 +506,8 @@ function deleteEncounter(encounterType, id, originalData, dataToCompare){
 
   if(encounterType === 'user'){
     EncounterUser.find(queryOption).exec().then(possibleDelete => {
-      console.log('possibleDelete', possibleDelete);
       EncounterUser.deleteMany(queryOption).exec().then()
           .catch(err => {
-            console.log('löschen Fehler User');
             console.log(err);
           });
     })
@@ -576,10 +563,8 @@ function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare,
     if(JSON.stringify(coordinates[index]) === JSON.stringify(array[i].coordinates)){
       found = true;
       if(JSON.stringify(originalData._id) === JSON.stringify(array[i].routeId)){
-        console.log(22);
         if(encounterType === 'user'){
           if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].routeName)){
-            console.log(23);
             updateEncounter(encounterType, originalData, array[i]._id);
           }
           // necessary to query the encounterType, because the structure of saving is different
@@ -591,9 +576,7 @@ function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare,
         }
       }
       else if(JSON.stringify(originalData._id) === JSON.stringify(array[i].comparedRoute)){
-        console.log(24);
         if(JSON.stringify(originalData.name) !== JSON.stringify(array[i].comparedRouteName)){
-          console.log(25);
           updateEncounter(encounterType, originalData, array[i]._id);
         }
       }
@@ -616,7 +599,6 @@ function asyncLoopEncounter(i, array, coordinates, midCoordinate, dataToCompare,
 function saveEncounter(originalData, dataToCompare, coordinates, encounterType, midCoordinate, index, id){
 
   if(encounterType === 'user'){
-    console.log('originalData', originalData);
     EncounterUser.find({$or: [{$and:[{routeId:originalData._id},{comparedRoute:dataToCompare._id}]},
         {$and:[{routeId:dataToCompare._id},{comparedRoute:originalData._id}]}]}).exec().then(encounterUser => {
       asyncLoopEncounter(0, encounterUser, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
@@ -628,7 +610,6 @@ function saveEncounter(originalData, dataToCompare, coordinates, encounterType, 
   }
   else if (encounterType === 'animal'){
     EncounterAnimal.find({$or: [{routeId:originalData._id},{compareTo:dataToCompare._id}]}).exec().then(encounterAnimal => {
-      console.log('encounterAnimal', encounterAnimal);
       asyncLoopEncounter(0, encounterAnimal, coordinates, midCoordinate, dataToCompare, originalData, encounterType, index, id, false);
     })
         .catch(err => {
@@ -645,7 +626,6 @@ function here(midCoordinate, coordinates, dataToCompare, originalData, encounter
 
   const category = 'sights-museums';
   var endpoint = 'https://places.demo.api.here.com/places/v1/discover/explore?at='+midCoordinate[1]+','+midCoordinate[0]+'&cat='+category+'&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
-  console.log('endpoint', endpoint);
   https.get(endpoint, (httpResponse) => {
 
     // concatenate updates from datastream
@@ -670,7 +650,6 @@ function here(midCoordinate, coordinates, dataToCompare, originalData, encounter
 function createPrettyLocationInfo(location_info, coordinates){
   var info = location_info.results.items;
   var content = '';
-  console.log('prettyCoordinates', coordinates);
   if(coordinates.length > 1){
     var line = turf.lineString(coordinates);
     for(var i = 0; i < info.length; i++){
@@ -753,7 +732,6 @@ function calculateMidCoordinate(coordinates){
  */
 function createFeatureCollection(input){
   var featureCollection = "";
-  console.log('length', input[input.length-1]);
   if(input.length > 0){
     var lineString = "";
     for(var i = 0; i < input.length-1; i++){

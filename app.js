@@ -124,7 +124,7 @@ app.use(passport.session());
 
 app.get('*', function(req, res, next){
   res.locals.user = req.user || null;
-  console.log('user', res.locals.user);
+  //console.log('user', res.locals.user);
   next();
 });
 
