@@ -2,8 +2,45 @@
 // jshint esversion: 6
 "use strict";
 
-//funktioniert noch nicht
-const token = import("../config/token");
+
+function ajaxCallUpdate(id){
+	console.log(id);
+	var formData = {
+		real: document.getElementById('cb '+id).checked,
+		id: document.getElementById('id '+id).value,
+		originalRoute: document.getElementById('originalRoute '+id).value,
+		comparedRoute: document.getElementById('comparedRoute '+id).value,
+		encounterTyp: document.getElementById('typ '+id).value,
+		changedValue: document.getElementById('value '+id).value,
+	};
+
+	$.ajax({
+		url: 'api/encounter/update',
+		type: 'POST',
+		data: formData
+	})
+	.done (function( response) {
+		// parse + use data here
+		var real;
+		if(response.real === 'true'){
+			alert('Die berechnete Begegnung wurde erfolgreich als tatsächliche Begegnung in der Datenbank abgespeichert.');
+			real = true;
+		}
+		else if(response.real === 'false'){
+			alert('Die berechnete Begegnung wurde erfolgreich als theorethische (nicht-tatsächliche) Begegnung in der Datenbank abgespeichert.');
+			real = false;
+		}
+		document.getElementById('cb '+response.encounterId+response.originalRoute).checked = real;
+		if(response.comparedRoute){
+			document.getElementById('cb '+response.encounterId+response.comparedRoute).checked = real;
+		}
+
+	})
+	.fail (function(xhr, status, errorThrown ) {
+		console.log(errorThrown);
+	});
+}
+
 
 function getTime(){
 	var date = new Date();
@@ -181,8 +218,8 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 	console.log(queryResultEncountersUser);
 	console.log(queryResultEncountersAnimal);
 	console.log(queryResultRoute);
-
-	if(queryResultEncountersUser.length + queryResultEncountersAnimal.length + queryResultRoute.length > 1){
+	var encounterCount = queryResultEncountersUser.length + queryResultEncountersAnimal.length;
+	if( encounterCount > 0 && encounterCount + queryResultRoute.length > 1){
 		var foundRouteAndEncounter = false;
 		for(var i = 0; i < queryResultRoute.length; i++){
 			var map;
@@ -403,7 +440,7 @@ function goTofurtherInformation(id){
 	}
 	details2.open = true;
 
-	var details3 = document.getElementById(details2.id.replace(/(me |others |animal)/,''));
+	var details3 = document.getElementById(details2.id.replace(/(me |others |animal )/,''));
 	details3.open = true;
 
 	details1.scrollIntoView({
@@ -433,16 +470,41 @@ function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, i
 
 function createInformation(weather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter){
 
+	var comparedRoute = queryResultEncounter.comparedRoute;
+	var originalRoute = queryResultEncounter.routeId
+	var originalUser = queryResultEncounter.userName
+	var realEncounter = queryResultEncounter.realEncounter;
+	var changedValue = 'original';
+	if(queryResultRoute._id === comparedRoute){
+		comparedRoute = queryResultEncounter.routeId;
+		originalRoute = queryResultEncounter.comparedRoute;
+		originalUser = queryResultEncounter.comparedToName;
+		realEncounter = queryResultEncounter.realEncounterCompared;
+		changedValue = 'compared';
+	}
+	console.log(queryResultEncounter);
 	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
 	if(specificEncounter){
 		// something else
+		if(realEncounter){
+			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" als tätsächliche Begegnung deklariert worden.</b>';
+		}
+		else {
+			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" nicht als tätsächliche Begegnung deklariert worden.</b>';
+		}
 	}
 	else {
-		var share = '<a href="/encounter/'+encounterTyp+'/'+queryResultRoute._id+'/'+queryResultEncounter._id+'" title="Link zur ausgewählten Begegnung" target="_blank"><button style="margin-top:10px; margin-bottom:10px;">Begegnung teilen</button></a>';
-		contentLocation += share+'<br>';
+		var share = '<a href="/encounter/'+encounterTyp+'/'+queryResultRoute._id+'/'+queryResultEncounter._id+'" title="Link zur ausgewählten Begegnung" target="_blank"><button style="margin-top:10px; margin-bottom:25px;">Begegnung teilen</button></a>';
+		var changeStatus = '<input id="cb '+queryResultEncounter._id+originalRoute+'" type="checkbox"/> tatsächliche Begegnung? </label><input id="id '+queryResultEncounter._id+originalRoute+'" hidden value="'+queryResultEncounter._id+'"/><input id="originalRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+originalRoute+'"/><input id="comparedRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+comparedRoute+'"/><input id="typ '+queryResultEncounter._id+originalRoute+'"hidden value="'+encounterTyp+'"/><input id="value '+queryResultEncounter._id+originalRoute+'"hidden value="'+changedValue+'"/><button onclick="ajaxCallUpdate(\''+queryResultEncounter._id+originalRoute+'\')" style="margin-top:10px;">Status ändern</button>';
+		contentLocation += changeStatus+'<br>'+share+'<br>';
+		//
 	}
 	var contentDetails = '<b>aktuelles Wetter:</b><br>'+weather + '<br>'+contentLocation;
 	createElement('li', '', 'li encounter '+encounterTyp+' '+index+' '+index2+index2, 'list-style:none', 'ul encounter '+encounterTyp+' '+index+' '+index2, contentDetails);
+	var checkbox = document.getElementById('cb '+queryResultEncounter._id+originalRoute);
+	if(checkbox){
+		checkbox.checked = realEncounter;
+	}
 }
 
 

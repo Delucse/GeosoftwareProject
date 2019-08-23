@@ -6,7 +6,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const authorizationCheck = require('../middleware/authorizationCheck');
-const token = require('../config/token');
+const token = require('../config/token.js').token;
 
 // import route model
 const Route = require('../models/route');

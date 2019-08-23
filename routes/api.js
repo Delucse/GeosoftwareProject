@@ -9,9 +9,7 @@ const mongoose = require("mongoose");
 
 const authorizationCheck = require('../middleware/authorizationCheck');
 
-
-const token = require('../config/token');
-
+const token = require('../config/token.js').token;
 
 // import animal model
 const Animal = require('../models/animal');
@@ -19,6 +17,51 @@ const Animal = require('../models/animal');
 const EncounterAnimal = require('../models/encounterAnimal');
 // import route model
 const Route = require('../models/route');
+
+
+
+
+router.post('/encounter/update', authorizationCheck, (req, res, next) => {
+  console.log('body', req.body);
+
+  if(req.body.encounterTyp === 'animal'){
+    EncounterAnimal.updateOne({_id: req.body.id}, {realEncounterCompared: req.body.real}).exec().then(resultAnimal => {
+      console.log(resultAnimal);
+      res.json({real: req.body.real, encounterId: req.body.id, originalRoute: req.body.originalRoute});
+    })
+    .catch(err => {
+      res.json(err);
+    });
+  }
+  else {
+    if(req.body.encounterTyp === 'me'){
+      EncounterUser.updateOne({_id: req.body.id}, {realEncounter: req.body.real, realEncounterCompared: req.body.real}).exec().then(resultMe => {
+          res.json({real: req.body.real, encounterId: req.body.id, originalRoute: req.body.originalRoute, comparedRoute: req.body.comparedRoute});
+      })
+      .catch(err => {
+        res.json(err);
+      });
+    }
+    else {
+      if(req.body.changedValue === 'compared'){
+        EncounterUser.updateOne({_id: req.body.id}, {realEncounterCompared: req.body.real}).exec().then(resultOthers => {
+          res.json({real: req.body.real, encounterId: req.body.id, originalRoute: req.body.originalRoute});
+        })
+        .catch(err => {
+          res.json(err);
+        });
+      }
+      else {
+        EncounterUser.updateOne({_id: req.body.id}, {realEncounter: req.body.real}).exec().then(resultOthers => {
+          res.json({real: req.body.real, encounterId: req.body.id, originalRoute: req.body.originalRoute});
+        })
+        .catch(err => {
+          res.json(err);
+        });
+      }
+    }
+  }
+});
 
 
 

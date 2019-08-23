@@ -62,12 +62,13 @@ app.use("/leaflet", express.static(__dirname + "/node_modules/leaflet/dist"));
 app.use("/leaflet-routing-machine", express.static(__dirname + "/node_modules/leaflet-routing-machine/dist"));
 app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/leaflet-control-geocoder/dist"));
 app.use('/turf', express.static(__dirname + '/node_modules/@turf/turf'));
+app.use('/token', express.static(__dirname + '/config'));
 
 // body parser middleware
 // parse application/x-www-form-urlencoded
 /*
 * sets the limit to 2MB:
-* now it is possible to load routes, that are very long without any error
+* now it is possible to load for example routes, that are very long without any error
 * (my tested maximum was 11359.36 km)
 */
 app.use(express.urlencoded({ extended: false, limit: '2mb' }));
@@ -96,7 +97,7 @@ app.use(validator({
 app.use(cookieParser());
 app.use(logger('dev'));
 
-var token = require('./config/token');
+var token = require('./config/token.js').token;
 
 // Express Session Middleware
 // @see https://github.com/expressjs/session
