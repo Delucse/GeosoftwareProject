@@ -101,3 +101,7 @@ th {
     padding: 0px;
     margin: 0px;
 }
+
+a.impressum:link, a.impressum:visited {
+  color: black;
+}

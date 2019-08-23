@@ -27,7 +27,7 @@ function getTime(input){
 /**
 * @desc changes the time and date in a pretty way
 * @param {date} time
-* @return {string} prettyTime, time and date in a pretty way (day hh:mm:ss, dd.mm.yyyy)
+* @return {string} prettyTime, time and date in a pretty way (day dd.mm.yyyy, hh:mm:ss)
 */
 function prettyTime(time){
   var today = time;
@@ -48,7 +48,7 @@ function prettyTime(time){
       add0[i] = '0'+add0[i];
     }
   }
-  var prettyTime = weekday[dayNumber]+' '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr, '+add0[0]+'.'+add0[1]+'.'+year;
+  var prettyTime = weekday[dayNumber]+' '+add0[0]+'.'+add0[1]+'.'+year+', '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr';
   return prettyTime;
 }
 

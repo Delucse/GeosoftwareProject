@@ -4,7 +4,6 @@
 
 
 function ajaxCallUpdate(id){
-	console.log(id);
 	var formData = {
 		real: document.getElementById('cb '+id).checked,
 		id: document.getElementById('id '+id).value,
@@ -62,7 +61,6 @@ function ajaxCallFilter(currentUserId){
 	else {
 		// create an ISO String
 		var dateISO = new Date(date+'T'+time+':00').toISOString();
-		console.log(dateISO);
 
 		var user = [];
 		var userInput = document.getElementsByClassName('user');
@@ -71,7 +69,6 @@ function ajaxCallFilter(currentUserId){
 				user.push(userInput[i].value);
 			}
 		}
-		console.log('resultUser', user);
 
 		var animal = [];
 		var animalInput = document.getElementsByClassName('animal');
@@ -80,7 +77,6 @@ function ajaxCallFilter(currentUserId){
 				animal.push(animalInput[j].value);
 			}
 		}
-		console.log('resultAnimal', animal);
 
 		var real;
 		var realInput = document.getElementsByClassName('real');
@@ -89,7 +85,6 @@ function ajaxCallFilter(currentUserId){
 				real = realInput[k].value;
 			}
 		}
-		console.log('resultReal', real);
 
 		var type;
 		var typeInput = document.getElementsByClassName('type');
@@ -98,7 +93,6 @@ function ajaxCallFilter(currentUserId){
 				type = typeInput[l].value;
 			}
 		}
-		console.log('resultType', type);
 
 		$.ajax({
 			url: 'api/encounter/filter',
@@ -114,15 +108,13 @@ function ajaxCallFilter(currentUserId){
 		})
 			.done (function( response) {
 				// parse + use data here
-				console.log('UserResponse', response[0]);
-				console.log('AnimalResponse', response[1]);
-				console.log('Routes', response[2]);
+
 				// removes the selected element and its child elements
 				$("#message").empty();
 				$("#encounters").empty();
 				if(typeof(response) === 'string'){
 					if(response === 'Error'){
-						var message = ' Es muss mindestens ein Nutzer oder ein Tier als Parameter ausgewählt sein.';
+						var message = ' Es muss mindestens ein Nutzer oder eine Tierart als Parameter ausgewählt sein.';
 						var alertContent = '<span class="oi oi-warning" aria-hidden="true"></span>' + message;
 						createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 						createElement('div', 'alert alert-danger', '', '', 'message col', alertContent);
@@ -139,7 +131,6 @@ function ajaxCallFilter(currentUserId){
 				}
 			})
 			.fail (function(xhr, status, errorThrown ) {
-				console.log(errorThrown);
 			});
 	}
 }
@@ -215,9 +206,7 @@ function allChecked(dataLength, specialId){
 }
 
 function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, queryResultRoute, specificEncounter){
-	console.log(queryResultEncountersUser);
-	console.log(queryResultEncountersAnimal);
-	console.log(queryResultRoute);
+
 	var encounterCount = queryResultEncountersUser.length + queryResultEncountersAnimal.length;
 	if( encounterCount > 0 && encounterCount + queryResultRoute.length > 1){
 		var foundRouteAndEncounter = false;
@@ -337,20 +326,20 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 
 
 		}
-		// alter the border of the last Map-Div
-		var lastMapEncounter = document.getElementsByClassName('mapEncounter');
-		lastMapEncounter[lastMapEncounter.length-1].style="border-style: none";
-
 		if(!foundRouteAndEncounter){
 			var message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
 			var alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
 			createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 			createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);
 		}
+		else {
+			// alter the border of the last Map-Div
+			var lastMapEncounter = document.getElementsByClassName('mapEncounter');
+			lastMapEncounter[lastMapEncounter.length-1].style="border-style: none";
+		}
 	}
 	else {
 		var message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
-		console.log(specificEncounter);
 		if(specificEncounter){
 			message = ' Die aufgerufene Begegnung existiert nicht (mehr).';
 		}
@@ -461,7 +450,6 @@ function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, i
 			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter);
 		})
 		.fail (function(xhr, status, errorThrown ) {
-			console.log(errorThrown);
 			var openWeather = 'Im Moment stehen keine Wetterdaten zur Verfügung.';
 			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter);
 		});
@@ -482,7 +470,6 @@ function createInformation(weather, queryResultRoute, queryResultEncounter, enco
 		realEncounter = queryResultEncounter.realEncounterCompared;
 		changedValue = 'compared';
 	}
-	console.log(queryResultEncounter);
 	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
 	if(specificEncounter){
 		// something else

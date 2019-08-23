@@ -16,6 +16,7 @@ const Animal = require('../models/animal');
 
 // get create page
 router.get('/create', authorizationCheck, (req, res, next) => {
+  req.flash('message', {type: 'infoMsg', msg: 'Hinweis: Es kann unter Umständen dazu kommen, dass die Route nicht sofort berechnet wird. Bei Nicht-Anzeige der Route wählen Sie bitte nochmals ihren Endpunkt der Route als Ziel aus. Wir bemühen uns schnellstmöglichst eine Lösung für das Problem zu finden und entschuldigen uns für die dadurch entstehenden Unannehmlichkeiten.'});
   res.render('create', {
     title: 'Routen-Editor',
     message: req.flash('message')
@@ -108,6 +109,9 @@ router.get('/update/:routeId', authorizationCheck, (req, res, next) => {
     // checks if current user is the same user, who created the route
     if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
       var id = req.params.routeId;
+      req.flash('message', {type: 'infoMsg',
+                            link: '/route/update/'+req.params.routeId,
+                             msg: ['Hinweis: Es kann unter Umständen dazu kommen, dass die Route nicht sofort berechnet wird. Bei Nicht-Anzeige der Route ', 'laden Sie die Seite neu.', ' Wir bemühen uns schnellstmöglichst eine Lösung für das Problem zu finden und entschuldigen uns für die dadurch entstehenden Unannehmlichkeiten.']});
       res.render('update',{
         title: 'Routen-Editor',
         input: createFeatureCollection([route]),
@@ -117,7 +121,7 @@ router.get('/update/:routeId', authorizationCheck, (req, res, next) => {
       req.flash('message', {
         type: 'errorMsg',
         link: '/user/logout',
-        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
       });
       res.redirect('/route/manage/'+req.user._id);
     }
@@ -256,10 +260,10 @@ function createFeatureCollection(input){
 }
 
 /**
- * @desc changes the time and date in a pretty way
- * @param {date} time
- * @return {string} prettyTime, time and date in a pretty way (day hh:mm:ss, dd.mm.yyyy)
- */
+* @desc changes the time and date in a pretty way
+* @param {date} time
+* @return {string} prettyTime, time and date in a pretty way (day dd.mm.yyyy, hh:mm:ss)
+*/
 function prettyTime(time){
   var today = time;
   var day = today.getDate();
@@ -279,7 +283,7 @@ function prettyTime(time){
       add0[i] = '0'+add0[i];
     }
   }
-  var prettyTime = weekday[dayNumber]+' '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr, '+add0[0]+'.'+add0[1]+'.'+year;
+  var prettyTime = weekday[dayNumber]+' '+add0[0]+'.'+add0[1]+'.'+year+', '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr';
   return prettyTime;
 }
 
@@ -301,7 +305,7 @@ router.get('/:routeId', authorizationCheck, (req, res, next) => {
       req.flash('message',{
         type: 'errorMsg',
         link: '/user/logout',
-        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
       });
       res.redirect('/route/manage/'+res.locals.user._id);
     }
@@ -320,12 +324,15 @@ router.get('/delete/:routeId', authorizationCheck, (req, res, next) => {
   Route.findById(req.params.routeId).exec().then(route => {
     var userId = route.userId;
     if(JSON.stringify(userId) === JSON.stringify(res.locals.user._id)){
-      EncounterUser.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeUser =>{
-        EncounterAnimal.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(removeAnimal =>{
+      EncounterUser.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(encountersUser =>{
+        EncounterAnimal.deleteMany({$or: [{routeId: req.params.routeId}, {comparedRoute: req.params.routeId}]}).exec().then(encountersAnimal =>{
           Route.deleteOne({_id: req.params.routeId}).exec().then(result => {
             req.flash('message', {type: 'successMsg',
               msg: 'Die Route wurde erfolgreich aus der Datenbank entfernt.'
             });
+            if(encountersUser.deletedCount + encountersAnimal.deletedCount > 0){
+              req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen Begegnungen wurden erfolgreich entfernt.'});
+            }
             res.redirect('/route/manage/'+res.locals.user._id);
           })
               .catch(err => {
@@ -356,7 +363,7 @@ router.get('/delete/:routeId', authorizationCheck, (req, res, next) => {
       req.flash('message', {
         type: 'errorMsg',
         link: '/user/logout',
-        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+        msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
       });
       res.redirect('/route/manage/'+res.locals.user._id);
     }
@@ -407,7 +414,7 @@ router.get('/manage/:userId', authorizationCheck, (req, res, next) => {
     req.flash('message',{
       type: 'errorMsg',
       link: '/user/logout',
-      msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+      msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
     });
     res.redirect('/route/manage/'+res.locals.user._id);
   }
@@ -518,7 +525,6 @@ function deleteEncounter(encounterType, id, originalData, dataToCompare){
   else if(encounterType === 'animal'){
     EncounterAnimal.deleteMany(queryOption).exec().then()
         .catch(err => {
-          console.log('löschen Fehler Animal');
         });
   }
 }
@@ -534,16 +540,13 @@ function updateEncounter(encounterType, originalData, objectId){
       else if(JSON.stringify(originalData._id) === JSON.stringify(encounter[0].comparedRoute)){
         update.comparedRouteName = originalData.name;
       }
-      console.log('update', update);
       EncounterUser.updateOne({_id: objectId}, update).exec().then()
           .catch(err => {
             console.log(err);
-            console.log('Fehler User');
           });
     })
         .catch(err => {
           console.log(err);
-          console.log('Fehler 1 User');
         });
 
   }
@@ -552,7 +555,6 @@ function updateEncounter(encounterType, originalData, objectId){
     EncounterAnimal.updateOne({_id: objectId}, update).exec().then()
         .catch(err => {
           console.log(err);
-          console.log('Fehler Animal');
         });
   }
 }
@@ -605,7 +607,6 @@ function saveEncounter(originalData, dataToCompare, coordinates, encounterType, 
     })
         .catch(err => {
           console.log(err);
-          console.log('Fehler 2 User');
         });
   }
   else if (encounterType === 'animal'){

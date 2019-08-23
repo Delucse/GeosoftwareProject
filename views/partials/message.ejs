@@ -5,7 +5,11 @@
       <% if (typeof(message[i].link) !== 'undefined' && message[i].link) { %>
         <div class="alert alert-danger">
           <span class="oi oi-warning" aria-hidden="true"></span>
-          <%= message[i].msg[0] %><a href="<%= message[i].link %>"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+          <% if (message[i].link.includes('www')) { %>
+            <%= message[i].msg[0] %><a href="<%= message[i].link %>" target="_blank"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+          <% } else { %>
+            <%= message[i].msg[0] %><a href="<%= message[i].link %>"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+          <% } %>
         </div>
       <% } else {%>
         <div class="alert alert-danger">
@@ -26,10 +30,17 @@
       </div>
       <% } %>
     <% } else if (typeof(message[i].type) !== 'undefined' && message[i].type == 'infoMsg') {%>
-      <div class="alert alert-warning"">
+      <% if (typeof(message[i].link) !== 'undefined' && message[i].link) { %>
+        <div class="alert alert-warning">
+          <span class="oi oi-paperclip" aria-hidden="true"></span>
+          <%= message[i].msg[0] %><a href="<%= message[i].link %>"><%= message[i].msg[1] %></a> <%= message[i].msg[2] %>
+        </div>
+      <% } else {%>
+      <div class="alert alert-warning">
         <span class="oi oi-paperclip" aria-hidden="true"></span>
         <%= message[i].msg %>
       </div>
+      <% } %>
     <% } %>
   <% } %>
   </div>

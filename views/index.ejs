@@ -26,6 +26,18 @@
         <div class="col-12" style="margin-top: 20px; margin-bottom: 10px;">
           <details>
             <summary>Tier-Daten hinzufügen</summary>
+            <p>
+              <div class="alert alert-warning">
+                <span class="oi oi-paperclip" aria-hidden="true"></span>
+                Hinweis: Movebank ist eine international zugängliche Datenbank für Tierbewegungen. Um zu
+                überprüfen, ob Sie eine Begegnung mit einer bestimmten Tierart auf Ihrer Route hatten, benötigen
+                Sie mindestens die Study-ID und den Sensortypen. Diese Informationen erhalten Sie über
+                <a href="https://www.movebank.org" target="_blank">movebank.org.</a>
+                Dort kann man verschiedene Tierarten auswählen und die von uns benötigten Informationen einsehen.
+                (Ausgenommen sind Studien, die eine seperate Zertifizierung bedürfen.)
+              </div>
+            </p>
+
             <form action="/api/movebank" method="POST">
               <label>Study ID</label>
               <input type="text" name="study_id" value="" required/>

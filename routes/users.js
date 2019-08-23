@@ -52,11 +52,11 @@ router.post('/signup', (req, res, next) => {
     if(result.length > 0) {
       errorMsg.push({type: 'errorMsg',
                      link: '/user/login',
-                      msg: ['Email-Adresse existiert bereits. Sie können sich mit Ihren Benutzerdaten ', 'hier', 'anmelden.']
+                      msg: ['Email-Adresse existiert bereits. Sie können sich mit Ihren Benutzerdaten ', 'hier anmelden.', '']
                      });
       req.flash('message', {type: 'errorMsg',
                             link: '/user/login',
-                             msg: ['Email-Adresse existiert bereits. Sie können sich mit Ihren Benutzerdaten ', 'hier', 'anmelden.']
+                             msg: ['Email-Adresse existiert bereits. Sie können sich mit Ihren Benutzerdaten ', 'hier anmelden.', '']
                            });
     }
     User.find({username: username}).exec().then(result => {
@@ -181,7 +181,7 @@ router.get('/:userId', authorizationCheck, (req, res, next) => {
   else {
     req.flash('message', {type: 'errorMsg',
                           link: '/user/logout',
-                           msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+                           msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
                          });
     res.redirect('/user/login');
   }
@@ -189,9 +189,15 @@ router.get('/:userId', authorizationCheck, (req, res, next) => {
 
 // import route model
 const Route = require('../models/route');
+// import encounter models
+const EncounterUser = require('../models/encounterUser');
+const EncounterAnimal = require('../models/encounterAnimal');
+
 
 router.get('/delete/:userId', authorizationCheck, (req, res, next) => {
   if(req.params.userId == res.locals.user._id){
+    EncounterUser.deleteMany({$or: [{userId: req.params.userId}, {comparedTo: req.params.userId}]}).exec().then(encountersUser =>{
+      EncounterAnimal.deleteMany({$or: [{userId: req.params.userId}, {comparedTo: req.params.userId}]}).exec().then(encountersAnimal =>{
         Route.deleteMany({userId: req.params.userId}).exec().then(route => {
           User.deleteOne({_id: req.params.userId}).exec().then(result => {
             req.flash('message', {type: 'successMsg',
@@ -202,12 +208,15 @@ router.get('/delete/:userId', authorizationCheck, (req, res, next) => {
                                    msg: 'Alle zugehörigen Routen wurden erfolgreich aus der Datenbank entfernt.'
                                  });
           }
+          if(encountersUser.deletedCount + encountersAnimal.deletedCount > 0){
+            req.flash('message', {type: 'successMsg', msg: 'Alle zugehörigen Begegnungen wurden erfolgreich entfernt.'});
+          }
           res.redirect('/user/login');
         })
         .catch(err => {
           console.log(err);
           req.flash('message', {type: 'infoMsg',
-                                 msg: 'Server Fehler. Versuchen Sie es erneut.'
+                                 msg: 'Server Fehler.'
                                });
           res.redirect('/user/'+req.params.userId);
         });
@@ -215,15 +224,31 @@ router.get('/delete/:userId', authorizationCheck, (req, res, next) => {
       .catch(err => {
         console.log(err);
         req.flash('message', {type: 'infoMsg',
-                               msg: 'Server Fehler. Versuchen Sie es erneut.'
+                               msg: 'Server Fehler.'
                              });
         res.redirect('/user/'+req.params.userId);
       });
+    })
+    .catch(err => {
+      console.log(err);
+      req.flash('message', {type: 'infoMsg',
+                             msg: 'Server Fehler.'
+                           });
+      res.redirect('/user/'+req.params.userId);
+    });
+  })
+  .catch(err => {
+    console.log(err);
+    req.flash('message', {type: 'infoMsg',
+                           msg: 'Server Fehler.'
+                         });
+    res.redirect('/user/'+req.params.userId);
+  });
 }
 else {
   req.flash('message', {type: 'errorMsg',
                         link: '/user/logout',
-                         msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier', 'anmelden.']
+                         msg: ['Die angeforderten Informationen stimmen nicht mit Ihrem Benutzerkonto überein. Sie haben daher keine Rechte für deren Zugriff. Gegebenfalls müssen Sie sich unter einem anderen Benutzerkonto ','hier anmelden.', '']
                        });
   res.redirect('/user/login');
 }
@@ -238,7 +263,7 @@ module.exports = router;
 /**
 * @desc changes the time and date in a pretty way
 * @param {date} time
-* @return {string} prettyTime, time and date in a pretty way (day hh:mm:ss, dd.mm.yyyy)
+* @return {string} prettyTime, time and date in a pretty way (day dd.mm.yyyy, hh:mm:ss)
 */
 function prettyTime(time){
   var today = time;
@@ -259,6 +284,6 @@ function prettyTime(time){
       add0[i] = '0'+add0[i];
     }
   }
-  var prettyTime = weekday[dayNumber]+' '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr, '+add0[0]+'.'+add0[1]+'.'+year;
+  var prettyTime = weekday[dayNumber]+' '+add0[0]+'.'+add0[1]+'.'+year+', '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr';
   return prettyTime;
 }
