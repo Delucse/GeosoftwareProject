@@ -20,27 +20,35 @@ var passport = require('passport');
 
 var config = require('./config/database');
 
-(async () => {
-  // set up default ("Docker") mongoose connection
-  await mongoose.connect(config.databaseDocker, {
-    useNewUrlParser: true,
-    useCreateIndex: true
-  }).then(db => {
-    console.log('Connected to MongoDB (databasename: "'+db.connections[0].name+'") on host "'+db.connections[0].host+'" and on port "'+db.connections[0].port+'""');
-  }).catch(async err => {
-    console.log('Connection to '+config.databaseDocker+' failed, try to connect to '+config.databaseLocal);
-    // set up "local" mongoose connection
-    await mongoose.connect(config.databaseLocal, {
+function connectMongoDB() {
+  (async () => {
+    // set up default ("Docker") mongoose connection
+    await mongoose.connect(config.databaseDocker, {
       useNewUrlParser: true,
-      useCreateIndex: true
+      useCreateIndex: true,
+      autoReconnect: true
     }).then(db => {
       console.log('Connected to MongoDB (databasename: "'+db.connections[0].name+'") on host "'+db.connections[0].host+'" and on port "'+db.connections[0].port+'""');
-    }).catch(err2nd => {
-      console.log('Error at MongoDB-connection with Docker: '+err);
-      console.log('Error at MongoDB-connection with Localhost: '+err2nd);
+    }).catch(async err => {
+      console.log('Connection to '+config.databaseDocker+' failed, try to connect to '+config.databaseLocal);
+      // set up "local" mongoose connection
+      await mongoose.connect(config.databaseLocal, {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        autoReconnect: true
+      }).then(db => {
+        console.log('Connected to MongoDB (databasename: "'+db.connections[0].name+'") on host "'+db.connections[0].host+'" and on port "'+db.connections[0].port+'""');
+      }).catch(err2nd => {
+        console.log('Error at MongoDB-connection with Docker: '+err);
+        console.log('Error at MongoDB-connection with Localhost: '+err2nd);
+        console.log('Retry to connect in 3 seconds');
+        setTimeout(connectMongoDB, 3000); // retry until db-server is up
+      });
     });
-  });
-})();
+  })();
+}
+// connect to MongoDB
+connectMongoDB();
 
 
 
@@ -80,8 +88,8 @@ app.use(express.json());
 app.use(validator({
   errorFormatter: function(param, msg, value) {
     var namespace = param.split('.'),
-        root    = namespace.shift(),
-        formParam = root;
+    root    = namespace.shift(),
+    formParam = root;
 
     while(namespace.length) {
       formParam += '[' + namespace.shift() + ']';

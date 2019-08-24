@@ -113,15 +113,17 @@ function ajaxCallFilter(currentUserId){
 				$("#message").empty();
 				$("#encounters").empty();
 				if(typeof(response) === 'string'){
+					var message;
+					var alertContent;
 					if(response === 'Error'){
-						var message = ' Es muss mindestens ein Nutzer oder eine Tierart als Parameter ausgewählt sein.';
-						var alertContent = '<span class="oi oi-warning" aria-hidden="true"></span>' + message;
+						message = ' Es muss mindestens ein Nutzer oder eine Tierart als Parameter ausgewählt sein.';
+						alertContent = '<span class="oi oi-warning" aria-hidden="true"></span>' + message;
 						createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 						createElement('div', 'alert alert-danger', '', '', 'message col', alertContent);
 					}
 					else if(response === 'Info'){
-						var message = ' Es liegen keine Routen mit den angegebenen Parametern in der Datenbank vor.';
-						var alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
+						message = ' Es liegen keine Routen mit den angegebenen Parametern in der Datenbank vor.';
+						alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
 						createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 						createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);
 					}
@@ -205,46 +207,45 @@ function allChecked(dataLength, specialId){
 	return allChecked;
 }
 
+
+function createMapEncounters(id, route, map){
+	if(!(document.getElementById('row map '+id))){
+		createElement('div', 'row mapEncounter', 'row map '+id, "border-style: none none solid none; border-width: 1px;", 'encounters', '');
+		createElement('div', 'col-12', 'col map '+id, "margin-top: 20px; margin-bottom: 44.2px;", 'row map '+id, '');
+		createElement('p', '', '', '', 'col map '+id, '<b>Route '+route.name+'</b>');
+		createElement('div', '', 'map '+id, "height:350px; width: 100%;", 'col map '+id, '');
+		createElement('details', '', 'details encounter '+id, '', 'col map '+id, '');
+		createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, '');
+		createCheckbox('summary encounter '+id, 'checkbox summary encounter '+id, '', 'isCheckedEncounters(id)', 'Begegnungen');
+		createElement('ul', '', 'ul encounter '+id, 'margin: 0px; list-style:none;', 'details encounter '+id, '');
+		map = createMap('map '+id);
+		maps.push(map);
+		var originalRoute = L.polyline(changeCoordinate(route.coordinates), {color: 'blue'});
+
+		var overlayMaps = {
+			'Route': originalRoute.addTo(map)
+		};
+		var basemaps;
+		L.control.layers(basemaps, overlayMaps).addTo(map);
+		map.fitBounds(originalRoute.getBounds());
+	}
+	return map;
+}
+
 function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, queryResultRoute, specificEncounter){
 
 	var encounterCount = queryResultEncountersUser.length + queryResultEncountersAnimal.length;
+	var message;
+	var alertContent;
 	if( encounterCount > 0 && encounterCount + queryResultRoute.length > 1){
 		var foundRouteAndEncounter = false;
 		for(var i = 0; i < queryResultRoute.length; i++){
 			var map;
-			var originalRoute;
-			var encountersMeLayerGroup = [];
-			var encountersOthersLayerGroup = [];
-			var encountersAnimalsLayerGroup = [];
-
 			var id = queryResultRoute[i]._id;
-
 			for(var j = 0; j < queryResultEncountersUser.length; j++){
 				if(queryResultEncountersUser[j].comparedRoute === queryResultRoute[i]._id || queryResultEncountersUser[j].routeId === queryResultRoute[i]._id){
-					//create div-boxes
-
-					if(!(document.getElementById('row map '+id))){
-						createElement('div', 'row mapEncounter', 'row map '+id, "border-style: none none solid none; border-width: 1px;", 'encounters', '');
-						createElement('div', 'col-12', 'col map '+id, "margin-top: 20px; margin-bottom: 44.2px;", 'row map '+id, '');
-						createElement('p', '', '', '', 'col map '+id, '<b>Route '+queryResultRoute[i].name+'</b>');
-						createElement('div', '', 'map '+id, "height:350px; width: 100%;", 'col map '+id, '');
-						createElement('details', '', 'details encounter '+id, '', 'col map '+id, '');
-						createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, '');
-						// addTableWithCheckbox('summary encounter '+id, 'Begegnungen');
-						createCheckbox('summary encounter '+id, 'checkbox summary encounter '+id, '', 'isCheckedEncounters(id)', 'Begegnungen');
-						createElement('ul', '', 'ul encounter '+id, 'margin: 0px; list-style:none;', 'details encounter '+id, '');
-
-						map = createMap('map '+id);
-						maps.push(map);
-						originalRoute = L.polyline(changeCoordinate(queryResultRoute[i].coordinates), {color: 'blue'});
-
-						var overlayMaps = {
-							'Route': originalRoute.addTo(map)
-						};
-						var basemaps;
-						L.control.layers(basemaps, overlayMaps).addTo(map);
-						map.fitBounds(originalRoute.getBounds());
-					}
+					//create map
+					map = createMapEncounters(id, queryResultRoute[i], map);
 
 					if(queryResultEncountersUser[j].userId === queryResultEncountersUser[j].comparedTo){
 						//create self-encounter
@@ -264,7 +265,7 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 							createCheckbox('summary encounter me '+id, 'checkbox summary encounter me '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit mir selbst');
 							createElement('ul', '', 'ul encounter me '+id, 'margin: 0px; list-style:none;', 'details encounter me '+id, '');
 						}
-						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], encountersMeLayerGroup, 'me', id, j);
+						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], 'me', id, j);
 						ajaxOpenWeather(queryResultEncountersUser[j], queryResultRoute[i], 'me', id, j, specificEncounter);
 						foundRouteAndEncounter = true;
 					}
@@ -278,7 +279,7 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 							createCheckbox('summary encounter others '+id, 'checkbox summary encounter others '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit anderen Nutzern');
 							createElement('ul', '', 'ul encounter others '+id, 'margin: 0px; list-style:none;', 'details encounter others '+id, '');
 						}
-						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], encountersOthersLayerGroup, 'others', id, j);
+						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], 'others', id, j);
 						ajaxOpenWeather(queryResultEncountersUser[j], queryResultRoute[i], 'others', id, j, specificEncounter);
 						foundRouteAndEncounter = true;
 					}
@@ -287,27 +288,8 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 
 			for(var k = 0; k < queryResultEncountersAnimal.length; k++){
 				if(queryResultEncountersAnimal[k].comparedRoute === queryResultRoute[i]._id){
-					//create div-boxes
-					if(!(document.getElementById('row map '+id))){
-						createElement('div', 'row mapEncounter', 'row map '+id, "border-style: none none solid none; border-width: 1px;", 'encounters', '');
-						createElement('div', 'col-12', 'col map '+id, "margin-top: 20px; margin-bottom: 44.2px;", 'row map '+id, '');
-						createElement('p', '', '', '', 'col map '+id, '<b>Route '+queryResultRoute[i].name+'</b>');
-						createElement('div', '', 'map '+id, "height:350px; width: 100%;", 'col map '+id, '');
-						createElement('details', '', 'details encounter '+id, '', 'col map '+id, '');
-						createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, '');
-						createCheckbox('summary encounter '+id, 'checkbox summary encounter '+id, '', 'isCheckedEncounters(id)', 'Begegnungen');
-						createElement('ul', '', 'ul encounter '+id, 'margin: 0px; list-style:none;', 'details encounter '+id, '');
-						map = createMap('map '+id);
-						maps.push(map);
-						originalRoute = L.polyline(changeCoordinate(queryResultRoute[i].coordinates), {color: 'blue'});
-
-						var overlayMaps = {
-							'Route': originalRoute.addTo(map)
-						};
-						var basemaps;
-						L.control.layers(basemaps, overlayMaps).addTo(map);
-						map.fitBounds(originalRoute.getBounds());
-					}
+					//create map
+					map = createMapEncounters(id, queryResultRoute[i], map);
 
 					//create animal encounter
 					if(!(document.getElementById('li encounter animal '+id))){
@@ -317,18 +299,15 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 						createCheckbox('summary encounter animal '+id, 'checkbox summary encounter animal '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit Tieren');
 						createElement('ul', '', 'ul encounter animal '+id, 'margin: 0px; list-style:none;', 'details encounter animal '+id, '');
 					}
-					drawEncountersOnMap(map, queryResultEncountersAnimal[k], queryResultRoute[i], encountersAnimalsLayerGroup, 'animal', id, k);
+					drawEncountersOnMap(map, queryResultEncountersAnimal[k], queryResultRoute[i], 'animal', id, k);
 					ajaxOpenWeather(queryResultEncountersAnimal[k], queryResultRoute[i], 'animal', id, k, specificEncounter);
 					foundRouteAndEncounter = true;
-
 				}
 			}
-
-
 		}
 		if(!foundRouteAndEncounter){
-			var message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
-			var alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
+			message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
+			alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
 			createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 			createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);
 		}
@@ -339,11 +318,11 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 		}
 	}
 	else {
-		var message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
+		message = ' Es sind keine Begegnungen mit den angegebenen Parametern vorhanden.';
 		if(specificEncounter){
 			message = ' Die aufgerufene Begegnung existiert nicht (mehr).';
 		}
-		var alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
+		alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
 		createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
 		createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);
 	}
@@ -459,8 +438,8 @@ function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, i
 function createInformation(weather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter){
 
 	var comparedRoute = queryResultEncounter.comparedRoute;
-	var originalRoute = queryResultEncounter.routeId
-	var originalUser = queryResultEncounter.userName
+	var originalRoute = queryResultEncounter.routeId;
+	var originalUser = queryResultEncounter.userName;
 	var realEncounter = queryResultEncounter.realEncounter;
 	var changedValue = 'original';
 	if(queryResultRoute._id === comparedRoute){
@@ -496,8 +475,7 @@ function createInformation(weather, queryResultRoute, queryResultEncounter, enco
 
 
 
-function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encountersLayerGroup, encounterTyp, index, index2){
-
+function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encounterTyp, index, index2){
 	var content = createContent(queryResultEncounter, queryResultRoute, encounterTyp);
 	var comparedRoute = queryResultEncounter.comparedRoute;
 	if(queryResultRoute._id === comparedRoute){
@@ -509,14 +487,12 @@ function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encoun
 		// polyline
 		var polyline = L.polyline(changeCoordinate(queryResultEncounter.coordinates), {color: 'red'}).addTo(map);
 		polyline.bindPopup(contentPopup, {maxWidth: 300});
-		encountersLayerGroup.push(polyline);
 		layers.push(polyline);
 	}
 	else {
 		// circle
 		var circle = L.circle([queryResultEncounter.coordinates[0][1], queryResultEncounter.coordinates[0][0]], {color: 'red'}).addTo(map);
 		circle.bindPopup(contentPopup, {maxWidth: 300});
-		encountersLayerGroup.push(circle);
 		layers.push(circle);
 	}
 	createElement('li', '', 'li encounter '+encounterTyp+' '+index+' '+index2, '', 'ul encounter '+encounterTyp+' '+index, '');
@@ -607,7 +583,6 @@ function changeCoordinate(coordinates){
  * @return {object} map
  */
 function createMap(id){
-	"use strict";
 	var map = L.map(id);
 
 	L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
