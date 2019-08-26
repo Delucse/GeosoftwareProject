@@ -2,6 +2,7 @@
 // jshint node: true
 "use strict";
 
+var JL = require('jsnlog').JL;
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
@@ -642,7 +643,8 @@ function here(midCoordinate, coordinates, dataToCompare, originalData, encounter
 
     httpResponse.on("error", (error) => {
       var location_info = 'keine ortsbezogenen Informationen abrufbar';
-      newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId);
+        JL().info("an error occurred with the here API");
+        newEncounter(encounterType, originalData, dataToCompare, coordinates, midCoordinate, location_info, index, objectId);
     });
 
   });

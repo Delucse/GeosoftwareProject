@@ -2,6 +2,7 @@
 // jshint node: true
 "use strict";
 
+var JL = require('jsnlog').JL;
 const express = require('express');
 const https = require("https");
 const router = express.Router();
@@ -219,6 +220,7 @@ router.post("/movebank", authorizationCheck, (req, res, next) => {
 
     httpResponse.on("error", (error) => {
       req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler. Versuchen Sie es erneut.'});
+      JL().info("an error occurred with the movebank API");
       res.redirect('/');
 
       throw error;

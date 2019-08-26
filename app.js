@@ -16,6 +16,8 @@ var validator = require('express-validator');
 var flash = require('express-flash');
 var session = require('express-session');
 var passport = require('passport');
+var JL = require('jsnlog').JL;
+var jsnlog_nodejs = require('jsnlog-nodejs').jsnlog_nodejs;
 
 
 var config = require('./config/database');
@@ -71,6 +73,13 @@ app.use("/leaflet-routing-machine", express.static(__dirname + "/node_modules/le
 app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/leaflet-control-geocoder/dist"));
 app.use('/turf', express.static(__dirname + '/node_modules/@turf/turf'));
 app.use('/token', express.static(__dirname + '/config'));
+app.use('/jsnlog', express.static(__dirname + 'node_modules', + 'jsnlog'));
+app.use(bodyParser.json());
+
+app.post("/jsnlog.logger", function (req, res) {
+  jsnlog_nodejs(JL, req.body);
+  res.send('');
+});
 
 // body parser middleware
 // parse application/x-www-form-urlencoded
@@ -82,7 +91,12 @@ app.use('/token', express.static(__dirname + '/config'));
 app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 // parse application/json
 app.use(express.json());
+app.post('*.logger', function (req, res) {
+  jsnlog_nodejs(JL, req.body);
 
+  // Send empty response. This is ok, because client side jsnlog does not use response from server.
+  res.send('');
+});
 // Express Validator Middleware
 // @see https://github.com/VojtaStavik/GetBack2Work-Node/blob/master/node_modules/express-validator/README.md
 app.use(validator({

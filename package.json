@@ -20,6 +20,8 @@
     "express-validator": "^5.1.1",
     "http-errors": "~1.6.3",
     "jquery": "^3.4.1",
+    "jsnlog": "^2.29.0",
+    "jsnlog-nodejs": "^2.29.0",
     "leaflet": "^1.5.1",
     "leaflet-control-geocoder": "^1.8.3",
     "leaflet-routing-machine": "^3.2.12",
