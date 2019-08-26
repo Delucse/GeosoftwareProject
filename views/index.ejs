@@ -12,7 +12,7 @@
 
 </head>
 
-<body onload = "drawEncounters(<%= JSON.stringify(encountersUser) %>, <%= JSON.stringify(encountersAnimal) %>, <%= JSON.stringify(userRoutes) %>, false), getTime()">
+<body onload = "drawEncounters(<%= JSON.stringify(encountersUser) %>, <%= JSON.stringify(encountersAnimal) %>, <%= JSON.stringify(userRoutes) %>, false), getCurrentTime()">
 
   <div class="wrapper">
 
@@ -144,7 +144,7 @@
                 <input id="timepicker" class="date" type="time" name="date" value="" />
               </label> erstellt wurden.
               <br>
-              <button onclick="ajaxCallFilter(<%= JSON.stringify(user._id) %>)">Filtern</button>
+              <button onclick="ajaxCallFilter()">Filtern</button>
 
             </details>
 
@@ -169,4 +169,10 @@
 
       <script src="/token/token.js"></script>
 
+      <script src="/javascripts/map.js"></script>
+
+      <script src="/javascripts/updateEncounterStatus.js"></script>
+
       <script src="/javascripts/drawMap.js"></script>
+
+      <script src="/javascripts/filter.js"></script>
