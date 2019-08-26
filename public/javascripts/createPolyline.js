@@ -1,8 +1,12 @@
+// jshint browser: true
+// jshint node: true
 // jshint esversion: 6
+"use strict";
+
 
 /**
-* @desc Abgabe zu Aufgabe 7, Geosoft 1, SoSe 2019;
-* application for creating a polyline and copying the geojson text representation
+* @desc task 9 (project), Geosoft 1, SoSe 2019;
+* application for creating a polyline (and copying the geojson text representation)
 */
 
 
@@ -21,67 +25,27 @@ var currentRoute;
 
 
 /**
-* @desc creates,shows a map and creates, edits a polyline and catches an error
+* @desc creates, shows a map and creates, edits a polyline
 */
 function editAndShowPolyline(){
-  "use strict";
-  try{
     deleteText('geojsontextareaInput');
     deleteText('geojsontextareaOutput');
     document.getElementById("furtherInformation").reset();
-    var mymap = createMap();
+    var mymap = window.createMap('map');
     editPolyline(mymap);
-  }
-  catch(err){
-    // catches an error, if it is not possible to load the leaflet map/ leaflet script, shows a message
-    document.getElementById("map").style.height = "40px";
-    document.getElementById("mapError").innerHTML = "&#9888; Eine Anzeige der Karte ist momentan nicht möglich.";
-
-    if(err.name == "ReferenceError"){
-      alert("Die Karte kann nicht angezeigt werden.\n\nBitte überprüfen Sie Ihre Internetverbindung und laden die Seite neu.");
-    }
-  }
 }
 
 /**
-* @desc creates,shows a map and updates, edits a polyline and catches an error
+* @desc creates, shows a map and updates, edits a polyline
 */
 function editAndShowPolylineUpdate(){
-  "use strict";
-  try{
-    deleteText('geojsontextareaOutput');
-    document.getElementById("furtherInformation").reset();
-    var mymap = createMap();
-    editPolyline(mymap);
-    editExistingPolylineUpdate();
-  }
-  catch(err){
-    // catches an error, if it is not possible to load the leaflet map/ leaflet script, shows a message
-    document.getElementById("map").style.height = "40px";
-    document.getElementById("mapError").innerHTML = "&#9888; Eine Anzeige der Karte ist momentan nicht möglich.";
-
-    if(err.name == "ReferenceError"){
-      alert("Die Karte kann nicht angezeigt werden.\n\nBitte überprüfen Sie Ihre Internetverbindung und laden die Seite neu.");
-    }
-  }
+  deleteText('geojsontextareaOutput');
+  document.getElementById("furtherInformation").reset();
+  var mymap = window.createMap('map');
+  editPolyline(mymap);
+  editExistingPolylineUpdate();
 }
 
-/**
-* @desc creates and shows a map with the city Münster as center
-* @return {object} map
-*/
-function createMap(){
-  "use strict";
-  var map = L.map("map").setView([51.9606649, 7.6261347], 11); // center of the map approximates the city Münster
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors",
-    id: "osm"
-  }).addTo(map);
-
-  return map;
-}
 
 /**
 * @desc determine if the input is GeoJson-valid regarding to a LineString in a FeatureCollection
@@ -89,7 +53,6 @@ function createMap(){
 * @return {boolean} isValid, true: if the input is valid; false: if the input is not valid
 */
 function isGeoJSONLineString(lineStringId){
-  "use strict";
   /*
   * every valid GeoJson FeatureCollection regarding a linestring consist of:
   * - {"type" : "FeatureCollection", "features" : [{"type" : "Feature", "properties" : {"name" : "attribut", ... },
@@ -108,7 +71,6 @@ function isGeoJSONLineString(lineStringId){
 * @desc changes the border of the input field for the polygon if the input is not valid
 */
 function showNotValidGeoJSONPolyline(){
-  "use strict";
   if(isGeoJSONLineString("geojsontextareaInput")==false){
     document.getElementById("geojsontextareaInput").style.border = "3px solid red";
   }
@@ -122,7 +84,6 @@ function showNotValidGeoJSONPolyline(){
 * @throw an error message if the input of the textarea is empty or is not valid
 */
 function editExistingPolyline(){
-  "use strict";
   try{
     if(document.getElementById("geojsontextareaInput").value == ""){
       throw "fehlende Routeneingabe";
@@ -152,7 +113,7 @@ function editExistingPolyline(){
     deleteText('geojsontextareaOutput');
 
     var coordinates = polylineInput.features[0].geometry.coordinates;
-    var latLngCoordinate = changeCoordinate(coordinates);
+    var latLngCoordinate = window.changeCoordinate(coordinates);
 
     /*
     * the 'leaflet routing machine' automatically calculates the route between two waypoints.
@@ -179,7 +140,7 @@ function editExistingPolyline(){
       popup('myPopupInputEmpty');
     }
     else {
-      alert(err);
+      window.alert(err);
     }
   }
 }
@@ -189,7 +150,6 @@ function editExistingPolyline(){
 * @throw an error message if the input of the textarea is empty or is not valid
 */
 function editExistingPolylineUpdate(){
-  "use strict";
   try{
     if(document.getElementById("geojsontextareaInput").value == ""){
       throw "fehlende Routeneingabe";
@@ -223,28 +183,15 @@ function editExistingPolylineUpdate(){
     deleteText('geojsontextareaOutput');
 
     var coordinates = polylineInput.features[0].geometry.coordinates;
-    var latLngCoordinate = changeCoordinate(coordinates);
+    var latLngCoordinate = window.changeCoordinate(coordinates);
 
     routingControl.setWaypoints([latLngCoordinate[0], latLngCoordinate[latLngCoordinate.length-1]]);
   }
   catch(err){
-    alert(err);
+    window.alert(err);
   }
 }
 
-/**
-* @desc swaps latitude and longitude and saves the result in a new array and returns it
-* @param {array} coordinates array with the coordinates (of the route)
-*	@return {array} coordinatesLatLng, array with the swaped coordinates of the route
-*/
-function changeCoordinate(coordinates){
-  "use strict";
-  var coordinatesLatLng = [];
-  for(var i = 0; i < coordinates.length; i++){
-    coordinatesLatLng.push(L.latLng([coordinates[i][1], coordinates[i][0]]));
-  }
-  return coordinatesLatLng;
-}
 
 /**
 * @desc creates a polyline between at least two points based on 'leaflet routing mamchine' and generates the corresponding geojson text representation
@@ -253,13 +200,12 @@ function changeCoordinate(coordinates){
 * @param {object} map, object, which is the map created by the function "createMap()"
 */
 function editPolyline(map){
-  "use strict";
   // creates a routing control with a geocoder
-  routingControl = L.Routing.control({
+  routingControl = window.L.Routing.control({
     show: false,
     collapsible: true, // if true, a collapse button is added, if false, no button is added, if undefined, a button is added if the screen width is small (typically mobile devices)
     // because of the demo geocoder, afer a specific amount of requests the geocoder does not worked
-    geocoder: L.Control.Geocoder.nominatim(),
+    geocoder: window.L.Control.Geocoder.nominatim(),
     waypoints: [],
     routeWhileDragging: true,
     fitSelectedRoutes: true, // fits the route
@@ -273,9 +219,8 @@ function editPolyline(map){
   // updates the geojson text representation in the output-textarea, if all further information are given
   routingControl.on('routeselected', function(output) {
     currentRoute = output.route;
-    geojson = L.Routing.routeToGeoJson(output.route);
-    var geometry = L.Routing.routeToLineString(output.route);
-    console.log(geometry.coordinates);
+    geojson = window.L.Routing.routeToGeoJson(output.route);
+    var geometry = window.L.Routing.routeToLineString(output.route);
     document.getElementById('geometry').value = JSON.stringify(geometry.coordinates);//.replace(/{"type":"LineString","coordinates":/, '').replace(/\]\]}/, ']]');
     updateText(geojson);
   });
@@ -302,23 +247,23 @@ function editPolyline(map){
 
   // @see http://www.liedman.net/leaflet-routing-machine/tutorials/interaction/
   map.on('click', function(e){
-    var container = L.DomUtil.create('div');
+    var container = window.L.DomUtil.create('div');
     var startButton = createButton('Start', container);
     var destinationButton = createButton('Ziel', container);
 
-    L.popup()
+    window.L.popup()
     .setContent(container)
     .setLatLng(e.latlng)
     .openOn(map);
 
     // sets the coordinates as target point
-    L.DomEvent.on(destinationButton, 'click', function(){
+    window.L.DomEvent.on(destinationButton, 'click', function(){
       routingControl.spliceWaypoints(routingControl.getWaypoints().length-1, 1, e.latlng);
       map.closePopup();
     });
 
     // sets the coordinates as starting point
-    L.DomEvent.on(startButton, 'click', function(){
+    window.L.DomEvent.on(startButton, 'click', function(){
       routingControl.spliceWaypoints(0, 1, e.latlng);
       map.closePopup();
     });
@@ -331,8 +276,7 @@ function editPolyline(map){
 * @param {object} route, object, which stores the information and coordinates about the routed route
 * @return {json} geojson, representation of the drawn polyline
 */
-L.Routing.routeToGeoJson = function (route) {
-  "use strict";
+window.L.Routing.routeToGeoJson = function (route) {
   var geojson = {
     type: 'FeatureCollection',
     features: [
@@ -346,7 +290,7 @@ L.Routing.routeToGeoJson = function (route) {
           description: document.getElementById("descriptionInput").value,
           // date: document.getElementById("date").value
         },
-        geometry: L.Routing.routeToLineString(route)
+        geometry: window.L.Routing.routeToLineString(route)
       }
     ]
   };
@@ -359,14 +303,13 @@ L.Routing.routeToGeoJson = function (route) {
 * @param {object} route, object, which stores the information and coordinates about the routed route
 * @return {json} linestring with all coordinates of the drawn polyline
 */
-L.Routing.routeToLineString = function(route) {
-  "use strict";
+window.L.Routing.routeToLineString = function(route) {
   var lineCoordinates = [],
   i,
   latLng;
 
   for (i = 0; i < route.coordinates.length; i++) {
-    latLng = L.latLng(route.coordinates[i]);
+    latLng = window.L.latLng(route.coordinates[i]);
     lineCoordinates.push([latLng.lng, latLng.lat]);
   }
 
@@ -383,8 +326,7 @@ L.Routing.routeToLineString = function(route) {
 * @return {object} button
 */
 function createButton(label, container){
-  "use strict";
-  var button = L.DomUtil.create('button','', container);
+  var button = window.L.DomUtil.create('button','', container);
   button.setAttribute('type','button');
   button.innerHTML = label;
   return button;
@@ -395,7 +337,6 @@ function createButton(label, container){
 * @param {string} elementId, specifies the HTML-element
 */
 function deleteText(elementId){
-  "use strict";
   document.getElementById(elementId).value = "";
 }
 
@@ -404,7 +345,6 @@ function deleteText(elementId){
 * @param {object} geojson
 */
 function updateText(geojson){
-  "use strict";
   document.getElementById("geojsontextareaOutput").value = JSON.stringify(geojson);
 }
 
@@ -412,7 +352,6 @@ function updateText(geojson){
 * @desc copies the content of the textarea if it is not empty and displays a status message
 */
 function copyText() {
-  "use strict";
   var text = document.getElementById("geojsontextareaOutput");
   var popupText = document.getElementById("myPopupOutput");
   if(text.value == ""){
@@ -433,7 +372,6 @@ function copyText() {
 * @param {string} elementId, specifies the HTML-element
 */
 function popup(elementId){
-  "use strict";
   var popup = document.getElementById(elementId);
   popup.classList.toggle("show");
   setTimeout(function(){
@@ -445,13 +383,12 @@ function popup(elementId){
 * @desc updates the output in the textarea as soon as all form fields are filled
 */
 function updateForm(){
-  "use strict";
   if((document.getElementById("nameInput").value!="") &&
   (document.getElementById("typeInput").value!="") &&
   (document.getElementById("descriptionInput").value!="")){
 
     if(geojson != undefined){
-      geojson = L.Routing.routeToGeoJson(currentRoute);
+      geojson = window.L.Routing.routeToGeoJson(currentRoute);
       updateText(geojson);
     }
   }
@@ -463,7 +400,6 @@ function updateForm(){
 * @throw an error if not all form fields are filled
 */
 function isComplete(action){
-  "use strict";
   try{
     if((document.getElementById("nameInput").value!="") &&
     (document.getElementById("typeInput").value!="") &&
@@ -480,7 +416,7 @@ function isComplete(action){
   }
   catch(err){
     if(err == "Es muss eine Route erstellt,\nsowie Angaben zum Typ, Namen und Beschreibung\ngemacht werden bevor die Route in der Datenbank abgespeichert werden kann.\n\nAnmerkung: Um ein valides GeoJson zu erstellen, bedarf es keiner Anführungszeichen!"){
-      alert(err);
+      window.alert(err);
     }
     else{
       console.log(err);

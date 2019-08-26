@@ -1,143 +1,38 @@
 // jshint node: true
+// jshint browser: true
+// jshint jquery: true
 // jshint esversion: 6
 "use strict";
 
 
-function ajaxCallUpdate(id){
-	var formData = {
-		real: document.getElementById('cb '+id).checked,
-		id: document.getElementById('id '+id).value,
-		originalRoute: document.getElementById('originalRoute '+id).value,
-		comparedRoute: document.getElementById('comparedRoute '+id).value,
-		encounterTyp: document.getElementById('typ '+id).value,
-		changedValue: document.getElementById('value '+id).value,
-	};
-
-	$.ajax({
-		url: 'api/encounter/update',
-		type: 'POST',
-		data: formData
-	})
-	.done (function( response) {
-		// parse + use data here
-		var real;
-		if(response.real === 'true'){
-			alert('Die berechnete Begegnung wurde erfolgreich als tatsächliche Begegnung in der Datenbank abgespeichert.');
-			real = true;
-		}
-		else if(response.real === 'false'){
-			alert('Die berechnete Begegnung wurde erfolgreich als theorethische (nicht-tatsächliche) Begegnung in der Datenbank abgespeichert.');
-			real = false;
-		}
-		document.getElementById('cb '+response.encounterId+response.originalRoute).checked = real;
-		if(response.comparedRoute){
-			document.getElementById('cb '+response.encounterId+response.comparedRoute).checked = real;
-		}
-
-	})
-	.fail (function(xhr, status, errorThrown ) {
-		console.log(errorThrown);
-	});
-}
+/**
+* @desc task 9 (project), Geosoft 1, SoSe 2019;
+* application for showing all encounters belonging to the current user
+*/
 
 
-function getTime(){
-	var date = new Date();
-	document.getElementById('datepicker').value = date.toLocaleDateString("fr-CA");
-	document.getElementById('timepicker').value = date.toLocaleTimeString('de-De', {hour: '2-digit', minute:'2-digit'});
-}
+
+/**
+* @global layers, an array, which stores all encounters of the current user as layer
+*/
+var layers = [];
+
+/**
+* @global maps, an array, which stores all maps
+*/
+var maps = [];
 
 
-function ajaxCallFilter(currentUserId){
-	var date = document.getElementById('datepicker').value;
-	var time = document.getElementById('timepicker').value;
-	if(date === '' || time === ''){
-		var ok = confirm('Bitte tragen Sie das Datum und die Uhrzeit ein.\n\nFür das aktuelle Datum bestätigen Sie bitte mit "OK".');
-		if(ok){
-			getTime();
-			ajaxCallFilter(currentUserId);
-		}
-	}
-	else {
-		// create an ISO String
-		var dateISO = new Date(date+'T'+time+':00').toISOString();
 
-		var user = [];
-		var userInput = document.getElementsByClassName('user');
-		for(var i = 0; i < userInput.length; i++){
-			if(userInput[i].checked){
-				user.push(userInput[i].value);
-			}
-		}
-
-		var animal = [];
-		var animalInput = document.getElementsByClassName('animal');
-		for(var j = 0; j < animalInput.length; j++){
-			if(animalInput[j].checked){
-				animal.push(animalInput[j].value);
-			}
-		}
-
-		var real;
-		var realInput = document.getElementsByClassName('real');
-		for(var k = 0; k < realInput.length; k++){
-			if(realInput[k].checked){
-				real = realInput[k].value;
-			}
-		}
-
-		var type;
-		var typeInput = document.getElementsByClassName('type');
-		for(var l = 0; l < realInput.length; l++){
-			if(typeInput[l].checked){
-				type = typeInput[l].value;
-			}
-		}
-
-		$.ajax({
-			url: 'api/encounter/filter',
-			type: 'POST',
-			data: {
-				real: JSON.stringify(real),
-				user: JSON.stringify(user),
-				animal: JSON.stringify(animal),
-				type: JSON.stringify(type),
-				date: dateISO,
-				currentUserId: document.getElementsByClassName('currentUserId')[0].value
-			}
-		})
-			.done (function( response) {
-				// parse + use data here
-
-				// removes the selected element and its child elements
-				$("#message").empty();
-				$("#encounters").empty();
-				if(typeof(response) === 'string'){
-					var message;
-					var alertContent;
-					if(response === 'Error'){
-						message = ' Es muss mindestens ein Nutzer oder eine Tierart als Parameter ausgewählt sein.';
-						alertContent = '<span class="oi oi-warning" aria-hidden="true"></span>' + message;
-						createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
-						createElement('div', 'alert alert-danger', '', '', 'message col', alertContent);
-					}
-					else if(response === 'Info'){
-						message = ' Es liegen keine Routen mit den angegebenen Parametern in der Datenbank vor.';
-						alertContent = '<span class="oi oi-paperclip" aria-hidden="true"></span>' + message;
-						createElement('div', 'col-12', 'message col', 'margin-top: 20px;', 'message', '');
-						createElement('div', 'alert alert-warning', '', '', 'message col', alertContent);
-					}
-				}
-				else {
-					drawEncounters(response[0], response[1], response[2]);
-				}
-			})
-			.fail (function(xhr, status, errorThrown ) {
-			});
-	}
-}
-
-
+/**
+* @desc creates an HTML-element and appends it to another HTML-element
+* @param {String} elementName specifies HTML-element
+* @param {String} className specifies the class of the HTML-element
+* @param {String} id specifies the id of the the HTML-element
+* @param {String} style specifies the style of the HTML-element
+* @param {String} parentElementId specifies the id of the parent-element, to get the parent-element to append the "child"
+* @param {String} content specifies the content of the HTML-element
+*/
 function createElement(elementName, className, id, style, parentElementId, content){
 	var element = document.createElement(elementName);
 	element.setAttribute("class", className);
@@ -147,67 +42,14 @@ function createElement(elementName, className, id, style, parentElementId, conte
 	document.getElementById(parentElementId).appendChild(element);
 }
 
-var layers = [];
-var maps = [];
 
 /**
- * @desc checks the "checked" status of the checkbox specified by the id and displays the layer on the map if the "checked"-status is true and hide the layer if the "checked" status is false.
- * @param {string} id specifies the checkbox
- */
-function allCheckedEncounter(dataLength, elements, input){
-	var allChecked = true;
-	for(var i = 0; i < dataLength; i++){
-		if(elements[i].checked === false){
-			allChecked = false;
-		}
-	}
-	return allChecked;
-}
-
-
-function isChecked(id, specialId, dataLength){
-	if(id !== specialId){
-		if(document.getElementById(id).checked == true){
-			if(allChecked(dataLength, specialId)){
-				document.getElementById(specialId).checked = true;
-			}
-		}
-		else if(document.getElementById(id).checked == false){
-			document.getElementById(specialId).checked = false;
-		}
-	}
-	else{
-		// if the "checked"-status of the "master"-checkbox is true, then every checkbox must have the status true
-		if(document.getElementById(specialId).checked == true){
-			for(var i = 0; i < dataLength; i++){
-				document.getElementById(specialId+" "+i).checked = true;
-			}
-		}
-		// if the "checked"-status of the "master"-checkbox is false, then every checkbox must have the status false
-		else if(document.getElementById(specialId).checked == false){
-			for(var j = 0; j < dataLength; j++){
-				document.getElementById(specialId+" "+j).checked = false;
-			}
-		}
-	}
-}
-
-/**
- * @desc checks if all checkboxes have the setting "checked == true"
- * @return {boolean} allChecked true, if every checkbox is checked; false, if that's not the case
- */
-
-function allChecked(dataLength, specialId){
-	var allChecked = true;
-	for(var i = 0; i < dataLength; i++){
-		if(document.getElementById(specialId+' '+i).checked === false){
-			allChecked = false;
-		}
-	}
-	return allChecked;
-}
-
-
+* @desc create a map for the encounters which belongs to the route
+* @param {string} id the id of the route
+* @param {object} route transferred route
+* @param {object} map
+* @return {object} map
+*/
 function createMapEncounters(id, route, map){
 	if(!(document.getElementById('row map '+id))){
 		createElement('div', 'row mapEncounter', 'row map '+id, "border-style: none none solid none; border-width: 1px;", 'encounters', '');
@@ -218,20 +60,187 @@ function createMapEncounters(id, route, map){
 		createElement('summary', '', 'summary encounter '+id, '', 'details encounter '+id, '');
 		createCheckbox('summary encounter '+id, 'checkbox summary encounter '+id, '', 'isCheckedEncounters(id)', 'Begegnungen');
 		createElement('ul', '', 'ul encounter '+id, 'margin: 0px; list-style:none;', 'details encounter '+id, '');
-		map = createMap('map '+id);
+		map = window.createMap('map '+id);
 		maps.push(map);
-		var originalRoute = L.polyline(changeCoordinate(route.coordinates), {color: 'blue'});
+		var originalRoute = window.L.polyline(window.changeCoordinate(route.coordinates), {color: 'blue'});
 
 		var overlayMaps = {
 			'Route': originalRoute.addTo(map)
 		};
 		var basemaps;
-		L.control.layers(basemaps, overlayMaps).addTo(map);
+		window.L.control.layers(basemaps, overlayMaps).addTo(map);
 		map.fitBounds(originalRoute.getBounds());
 	}
 	return map;
 }
 
+
+/**
+* @desc creates the details and summary HTML-elements and the belonging checkbox for an encounter
+* @param {String} id the id of the route
+* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+* @param {String} content innerHTML of the summary-HTML-element
+*/
+function createDetailsEncounter(id, encounterTyp, content){
+	createElement('details', 'details_encounter_'+id, 'details encounter '+encounterTyp+' '+id, '', 'li encounter '+encounterTyp+' '+id, '');
+	createElement('summary', '', 'summary encounter '+encounterTyp+' '+id, '', 'details encounter '+encounterTyp+' '+id, '');
+	createCheckbox('summary encounter '+encounterTyp+' '+id, 'checkbox summary encounter '+encounterTyp+' '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', content);
+	createElement('ul', '', 'ul encounter '+encounterTyp+' '+id, 'margin: 0px; list-style:none;', 'details encounter '+encounterTyp+' '+id, '');
+}
+
+
+/**
+* @desc generate the content for popUp of the leaflet-layer
+* @param {object} queryResultEncounter transferred encounter
+* @param {object} queryResultRoute transferred route
+* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+* @return {String} content
+*/
+function createContent(queryResultEncounter, queryResultRoute, encounterTyp){
+	var content;
+	if(encounterTyp === 'me'){
+		content = 'Selbstbegegnung auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'"';
+		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
+			content = 'Selbstbegegnung auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'"';
+		}
+	}
+	else if(encounterTyp === 'others'){
+		content = 'Begegnung mit dem Nutzer "'+queryResultEncounter.comparedToName+'" auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'"';
+		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
+			content = 'Begegnung mit dem Nutzer "'+queryResultEncounter.userName+'" auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'"';
+		}
+	}
+	else {
+		content = 'Begegnung mit dem Tier "'+queryResultEncounter.animal+'" auf der Route "'+queryResultEncounter.comparedRouteName+'"';
+	}
+	return content;
+}
+
+
+/**
+* @desc retrieves weather data from OpenWeatherMap
+* @param {obejct} queryResultEncounter transferred encounter
+* @param {object} queryResultRoute transferred route
+* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+* @param {String} id the id of the route
+* @param {number} index specified the index of the encounter of the specified route
+* @param {boolean} specificEncounter describes if it is a single encounter or not
+*/
+function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, id, index, specificEncounter){
+	$.ajax({
+		url: 'https:api.openweathermap.org/data/2.5/weather?lat='+queryResultEncounter.midCoordinate[1]+'&lon='+queryResultEncounter.midCoordinate[0]+'&units=metric&appid='+window.token.OPENWEATHERMAP_TOKEN,
+		type: 'GET',
+	})
+	.done (function(response) {
+		// parse + use data here
+		var openWeather = response.name+', '+response.main.temp+'°C, <img src="http://openweathermap.org/img/w/'+response.weather[0].icon+'.png" title="'+response.weather[0].description+'">';
+		createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
+	})
+	.fail (function(xhr, status, errorThrown ) {
+		var openWeather = 'Im Moment stehen keine Wetterdaten zur Verfügung.';
+		createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
+	});
+}
+
+
+/**
+* @desc generates the content that is displayed for each encounter
+* @param {String} weather weather data from OpenWeatherMap
+* @param {obejct} queryResultEncounter transferred encounter
+* @param {object} queryResultRoute transferred route
+* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+* @param {String} id the id of the route
+* @param {number} index specified the index of the encounter of the specified route
+* @param {boolean} specificEncounter describes if it is a single encounter or not
+*/
+function createInformation(weather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter){
+
+	// checks which part from encounter belongs to the current route (original or compared Route?)
+	var comparedRoute = queryResultEncounter.comparedRoute;
+	var originalRoute = queryResultEncounter.routeId;
+	var originalUser = queryResultEncounter.userName;
+	var realEncounter = queryResultEncounter.realEncounter;
+	var changedValue = 'original';
+	if(queryResultRoute._id === comparedRoute){
+		comparedRoute = queryResultEncounter.routeId;
+		originalRoute = queryResultEncounter.comparedRoute;
+		originalUser = queryResultEncounter.comparedToName;
+		realEncounter = queryResultEncounter.realEncounterCompared;
+		changedValue = 'compared';
+	}
+	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
+	if(specificEncounter){
+		// something else
+		if(realEncounter){
+			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" als tätsächliche Begegnung deklariert worden.</b>';
+		}
+		else {
+			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" nicht als tätsächliche Begegnung deklariert worden.</b>';
+		}
+	}
+	else {
+		var share = '<a href="/encounter/'+encounterTyp+'/'+queryResultRoute._id+'/'+queryResultEncounter._id+'" title="Link zur ausgewählten Begegnung" target="_blank"><button style="margin-top:10px; margin-bottom:25px;">Begegnung teilen</button></a>';
+		var changeStatus = '<input id="cb '+queryResultEncounter._id+originalRoute+'" type="checkbox"/> tatsächliche Begegnung? </label><input id="id '+queryResultEncounter._id+originalRoute+'" hidden value="'+queryResultEncounter._id+'"/><input id="originalRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+originalRoute+'"/><input id="comparedRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+comparedRoute+'"/><input id="typ '+queryResultEncounter._id+originalRoute+'"hidden value="'+encounterTyp+'"/><input id="value '+queryResultEncounter._id+originalRoute+'"hidden value="'+changedValue+'"/><button onclick="ajaxCallUpdate(\''+queryResultEncounter._id+originalRoute+'\')" style="margin-top:10px;">Status ändern</button>';
+		contentLocation += changeStatus+'<br>'+share+'<br>';
+		//
+	}
+	var contentDetails = '<b>aktuelles Wetter:</b><br>'+weather + '<br>'+contentLocation;
+	createElement('li', '', 'li encounter '+encounterTyp+' '+id+' '+index+index, 'list-style:none', 'ul encounter '+encounterTyp+' '+id+' '+index, contentDetails);
+	var checkbox = document.getElementById('cb '+queryResultEncounter._id+originalRoute);
+	if(checkbox){
+		checkbox.checked = realEncounter;
+	}
+}
+
+
+/**
+* @desc creates the layer of the encounter and bind a popUp
+* @param {object} map
+* @param {obejct} queryResultEncounter transferred encounter
+* @param {object} queryResultRoute transferred route
+* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+* @param {String} id the id of the route
+* @param {number} index specified the index of the encounter of the specified route
+*/
+function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encounterTyp, id, index){
+	var content = createContent(queryResultEncounter, queryResultRoute, encounterTyp);
+	var comparedRoute = queryResultEncounter.comparedRoute;
+	if(queryResultRoute._id === comparedRoute){
+		comparedRoute = queryResultEncounter.routeId;
+	}
+
+	var contentPopup = '<b>'+content+'</b><br><a onclick="goTofurtherInformation(\'details encounter '+encounterTyp+' '+id+' '+index+'\'); return false;" href="" title="weitere Informationen zur ausgewählten Begegnung">weitere Informationen</a>';
+	if(queryResultEncounter.coordinates.length > 1){
+		// polyline
+		var polyline = window.L.polyline(window.changeCoordinate(queryResultEncounter.coordinates), {color: 'red'}).addTo(map);
+		polyline.bindPopup(contentPopup, {maxWidth: 300});
+		layers.push(polyline);
+	}
+	else {
+		// circle
+		var circle = window.L.circle([queryResultEncounter.coordinates[0][1], queryResultEncounter.coordinates[0][0]], {color: 'red'}).addTo(map);
+		circle.bindPopup(contentPopup, {maxWidth: 300});
+		layers.push(circle);
+	}
+	createElement('li', '', 'li encounter '+encounterTyp+' '+id+' '+index, '', 'ul encounter '+encounterTyp+' '+id, '');
+	createElement('details', 'details_encounter_specific_'+id, 'details encounter '+encounterTyp+' '+id+' '+index, '', 'li encounter '+encounterTyp+' '+id+' '+index, '');
+	createElement('summary', '', 'summary encounter '+encounterTyp+' '+id+' '+index, '', 'details encounter '+encounterTyp+' '+id+' '+index, '');
+
+	createCheckbox('summary encounter '+encounterTyp+' '+id+' '+index, 'li encounter checkbox '+encounterTyp+' '+id+' '+index, 'checkbox summary encounter '+encounterTyp+' '+id, 'isCheckboxChecked('+'\'li encounter checkbox ' +encounterTyp+' '+id+' '+index +'\',' +JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+')', content);
+	createElement('span', 'oi oi-zoom-in', 'span encounter '+encounterTyp+' '+id+' '+index, 'cursor:pointer; margin-left: 5px;', 'summary encounter '+encounterTyp+' '+id+' '+index, '');
+	document.getElementById('span encounter '+encounterTyp+' '+id+' '+index).setAttribute('onclick', 'zoomIn('+JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+','+JSON.stringify('li encounter checkbox '+encounterTyp+' '+id+' '+index)+')');
+
+	createElement('ul', '', 'ul encounter '+encounterTyp+' '+id+' '+index, '', 'details encounter '+encounterTyp+' '+id+' '+index, '');
+}
+
+
+/**
+* @desc checks what kind of encounter it is and displays it together with information
+* @param {object} queryResultEncountersUser all user-encounters which belongs to the current user
+* @param {object} queryResultEncountersAnimal all user-animal-encounters which belongs to the current user
+* @param {object} queryResultRoute all routes which belongs to the current user
+* @param {boolean} specificEncounter describes if it is a single encounter or not
+*/
 function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, queryResultRoute, specificEncounter){
 
 	var encounterCount = queryResultEncountersUser.length + queryResultEncountersAnimal.length;
@@ -250,6 +259,7 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 					if(queryResultEncountersUser[j].userId === queryResultEncountersUser[j].comparedTo){
 						//create self-encounter
 						if(!(document.getElementById('li encounter me '+id))){
+							// keep order: 1st: self-encounter, 2nd user-encounter
 							if(document.getElementById('li encounter others '+id)){
 								var encounterMe = document.createElement('li');
 								encounterMe.setAttribute('id', 'li encounter me '+id);
@@ -259,25 +269,25 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 							else {
 								createElement('li', '', 'li encounter me '+id, '', 'ul encounter '+id, '');
 							}
-							createElement('details', 'details_encounter_'+id, 'details encounter me '+id, '', 'li encounter me '+id, '');
-							createElement('summary', '', 'summary encounter me '+id, '', 'details encounter me '+id, '');
-							// addTableWithCheckbox('summary encounter me '+id, 'Begegnungen mit mir selbst');
-							createCheckbox('summary encounter me '+id, 'checkbox summary encounter me '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit mir selbst');
-							createElement('ul', '', 'ul encounter me '+id, 'margin: 0px; list-style:none;', 'details encounter me '+id, '');
+							createDetailsEncounter(id, 'me', 'Begegnungen mit mir selbst');
+							// createElement('details', 'details_encounter_'+id, 'details encounter me '+id, '', 'li encounter me '+id, '');
+							// createElement('summary', '', 'summary encounter me '+id, '', 'details encounter me '+id, '');
+							// createCheckbox('summary encounter me '+id, 'checkbox summary encounter me '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit mir selbst');
+							// createElement('ul', '', 'ul encounter me '+id, 'margin: 0px; list-style:none;', 'details encounter me '+id, '');
 						}
 						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], 'me', id, j);
 						ajaxOpenWeather(queryResultEncountersUser[j], queryResultRoute[i], 'me', id, j, specificEncounter);
 						foundRouteAndEncounter = true;
 					}
 					else {
-						//create other User encounter
+						//create other user encounter
 						if(!(document.getElementById('li encounter others '+id))){
 							createElement('li', '', 'li encounter others '+id, '', 'ul encounter '+id, '');
-							createElement('details', 'details_encounter_'+id, 'details encounter others '+id, '', 'li encounter others '+id, '');
-							createElement('summary', '', 'summary encounter others '+id, '', 'details encounter others '+id, '');
-							// addTableWithCheckbox('summary encounter others '+id, 'Begegnungen mit anderen Nutzern');
-							createCheckbox('summary encounter others '+id, 'checkbox summary encounter others '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit anderen Nutzern');
-							createElement('ul', '', 'ul encounter others '+id, 'margin: 0px; list-style:none;', 'details encounter others '+id, '');
+							createDetailsEncounter(id, 'others', 'Begegnungen mit anderen Nutzern');
+							// createElement('details', 'details_encounter_'+id, 'details encounter others '+id, '', 'li encounter others '+id, '');
+							// createElement('summary', '', 'summary encounter others '+id, '', 'details encounter others '+id, '');
+							// createCheckbox('summary encounter others '+id, 'checkbox summary encounter others '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit anderen Nutzern');
+							// createElement('ul', '', 'ul encounter others '+id, 'margin: 0px; list-style:none;', 'details encounter others '+id, '');
 						}
 						drawEncountersOnMap(map, queryResultEncountersUser[j], queryResultRoute[i], 'others', id, j);
 						ajaxOpenWeather(queryResultEncountersUser[j], queryResultRoute[i], 'others', id, j, specificEncounter);
@@ -294,10 +304,11 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 					//create animal encounter
 					if(!(document.getElementById('li encounter animal '+id))){
 						createElement('li', '', 'li encounter animal '+id, '', 'ul encounter '+id, '');
-						createElement('details', 'details_encounter_'+id, 'details encounter animal '+id, '', 'li encounter animal '+id, '');
-						createElement('summary', '', 'summary encounter animal '+id, '', 'details encounter animal '+id, '');
-						createCheckbox('summary encounter animal '+id, 'checkbox summary encounter animal '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit Tieren');
-						createElement('ul', '', 'ul encounter animal '+id, 'margin: 0px; list-style:none;', 'details encounter animal '+id, '');
+						createDetailsEncounter(id, 'animal', 'Begegnungen mit Tieren');
+						// createElement('details', 'details_encounter_'+id, 'details encounter animal '+id, '', 'li encounter animal '+id, '');
+						// createElement('summary', '', 'summary encounter animal '+id, '', 'details encounter animal '+id, '');
+						// createCheckbox('summary encounter animal '+id, 'checkbox summary encounter animal '+id, 'checkbox summary encounter '+id, 'isCheckedEncounters(id)', 'Begegnungen mit Tieren');
+						// createElement('ul', '', 'ul encounter animal '+id, 'margin: 0px; list-style:none;', 'details encounter animal '+id, '');
 					}
 					drawEncountersOnMap(map, queryResultEncountersAnimal[k], queryResultRoute[i], 'animal', id, k);
 					ajaxOpenWeather(queryResultEncountersAnimal[k], queryResultRoute[i], 'animal', id, k, specificEncounter);
@@ -329,66 +340,10 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 }
 
 
-function createContent(queryResultEncounter, queryResultRoute, encounterTyp){
-	var content;
-	if(encounterTyp === 'me'){
-		content = 'Selbstbegegnung auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'"';
-		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
-			content = 'Selbstbegegnung auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'"';
-		}
-	}
-	else if(encounterTyp === 'others'){
-		content = 'Begegnung mit dem Nutzer "'+queryResultEncounter.comparedToName+'" auf den Routen "'+queryResultEncounter.routeName+'" und "'+queryResultEncounter.comparedRouteName+'"';
-		if(queryResultEncounter.comparedRoute === queryResultRoute._id){
-			content = 'Begegnung mit dem Nutzer "'+queryResultEncounter.userName+'" auf den Routen "'+queryResultEncounter.comparedRouteName+'" und "'+queryResultEncounter.routeName+'"';
-		}
-	}
-	else {
-		content = 'Begegnung mit dem Tier "'+queryResultEncounter.animal+'" auf der Route "'+queryResultEncounter.comparedRouteName+'"';
-	}
-	return content;
-}
-
 /**
- * checks whether the given checkbox was checked or not and adds/removes the layer
- * @param id id of the checkbox
- */
-function isCheckedEncounters(id){
-	var element = document.getElementById(id);
-	if (element.checked){
-		checkEncounters(element.id);
-	}
-	else{
-		uncheckEncounters(element.id);
-	}
-}
-
-function uncheckEncounters(className){
-	var elements = document.getElementsByClassName(className);
-	for (var i=0;i< elements.length;i++){
-		elements[i].checked=false;
-		elements[i].onchange();
-		if(elements[i].id.match(/encounter (me|others|animal)/)){
-			isCheckedEncounters(elements[i].id);
-		}
-	}
-}
-
-function checkEncounters(className){
-	var elements = document.getElementsByClassName(className);
-	for (var i=0;i< elements.length;i++){
-		elements[i].checked=true;
-		elements[i].onchange();
-		if(elements[i].id.match(/encounter (me|others|animal)/)){
-			isCheckedEncounters(elements[i].id);
-		}
-	}
-}
-
-/**
- * @desc scroll to the specified HTML element and show the information
- * @param {string} id id of the HTML element
- */
+* @desc scrolls to the specified HTML element and shows the information
+* @param {string} id id of the HTML element
+*/
 function goTofurtherInformation(id){
 	var details1 = document.getElementById(id);
 	//closes all details1-elements
@@ -418,136 +373,34 @@ function goTofurtherInformation(id){
 }
 
 
-function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, index, index2, specificEncounter){
-	$.ajax({
-		url: 'https:api.openweathermap.org/data/2.5/weather?lat='+queryResultEncounter.midCoordinate[1]+'&lon='+queryResultEncounter.midCoordinate[0]+'&units=metric&appid='+token.OPENWEATHERMAP_TOKEN,
-		type: 'GET',
-	})
-		.done (function(response) {
-			// parse + use data here
-			var openWeather = response.name+', '+response.main.temp+'°C, <img src="http://openweathermap.org/img/w/'+response.weather[0].icon+'.png" title="'+response.weather[0].description+'">';
-			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter);
-		})
-		.fail (function(xhr, status, errorThrown ) {
-			var openWeather = 'Im Moment stehen keine Wetterdaten zur Verfügung.';
-			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter);
-		});
-}
-
-
-function createInformation(weather, queryResultRoute, queryResultEncounter, encounterTyp, index, index2, specificEncounter){
-
-	var comparedRoute = queryResultEncounter.comparedRoute;
-	var originalRoute = queryResultEncounter.routeId;
-	var originalUser = queryResultEncounter.userName;
-	var realEncounter = queryResultEncounter.realEncounter;
-	var changedValue = 'original';
-	if(queryResultRoute._id === comparedRoute){
-		comparedRoute = queryResultEncounter.routeId;
-		originalRoute = queryResultEncounter.comparedRoute;
-		originalUser = queryResultEncounter.comparedToName;
-		realEncounter = queryResultEncounter.realEncounterCompared;
-		changedValue = 'compared';
-	}
-	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
-	if(specificEncounter){
-		// something else
-		if(realEncounter){
-			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" als tätsächliche Begegnung deklariert worden.</b>';
-		}
-		else {
-			contentLocation += '<br><b>Die Begegnung ist von Nutzer "'+originalUser+'" nicht als tätsächliche Begegnung deklariert worden.</b>';
-		}
-	}
-	else {
-		var share = '<a href="/encounter/'+encounterTyp+'/'+queryResultRoute._id+'/'+queryResultEncounter._id+'" title="Link zur ausgewählten Begegnung" target="_blank"><button style="margin-top:10px; margin-bottom:25px;">Begegnung teilen</button></a>';
-		var changeStatus = '<input id="cb '+queryResultEncounter._id+originalRoute+'" type="checkbox"/> tatsächliche Begegnung? </label><input id="id '+queryResultEncounter._id+originalRoute+'" hidden value="'+queryResultEncounter._id+'"/><input id="originalRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+originalRoute+'"/><input id="comparedRoute '+queryResultEncounter._id+originalRoute+'" hidden value="'+comparedRoute+'"/><input id="typ '+queryResultEncounter._id+originalRoute+'"hidden value="'+encounterTyp+'"/><input id="value '+queryResultEncounter._id+originalRoute+'"hidden value="'+changedValue+'"/><button onclick="ajaxCallUpdate(\''+queryResultEncounter._id+originalRoute+'\')" style="margin-top:10px;">Status ändern</button>';
-		contentLocation += changeStatus+'<br>'+share+'<br>';
-		//
-	}
-	var contentDetails = '<b>aktuelles Wetter:</b><br>'+weather + '<br>'+contentLocation;
-	createElement('li', '', 'li encounter '+encounterTyp+' '+index+' '+index2+index2, 'list-style:none', 'ul encounter '+encounterTyp+' '+index+' '+index2, contentDetails);
-	var checkbox = document.getElementById('cb '+queryResultEncounter._id+originalRoute);
-	if(checkbox){
-		checkbox.checked = realEncounter;
-	}
-}
-
-
-
-function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encounterTyp, index, index2){
-	var content = createContent(queryResultEncounter, queryResultRoute, encounterTyp);
-	var comparedRoute = queryResultEncounter.comparedRoute;
-	if(queryResultRoute._id === comparedRoute){
-		comparedRoute = queryResultEncounter.routeId;
-	}
-
-	var contentPopup = '<b>'+content+'</b><br><a onclick="goTofurtherInformation(\'details encounter '+encounterTyp+' '+index+' '+index2+'\'); return false;" href="" title="weitere Informationen zur ausgewählten Begegnung">weitere Informationen</a>';
-	if(queryResultEncounter.coordinates.length > 1){
-		// polyline
-		var polyline = L.polyline(changeCoordinate(queryResultEncounter.coordinates), {color: 'red'}).addTo(map);
-		polyline.bindPopup(contentPopup, {maxWidth: 300});
-		layers.push(polyline);
-	}
-	else {
-		// circle
-		var circle = L.circle([queryResultEncounter.coordinates[0][1], queryResultEncounter.coordinates[0][0]], {color: 'red'}).addTo(map);
-		circle.bindPopup(contentPopup, {maxWidth: 300});
-		layers.push(circle);
-	}
-	createElement('li', '', 'li encounter '+encounterTyp+' '+index+' '+index2, '', 'ul encounter '+encounterTyp+' '+index, '');
-	createElement('details', 'details_encounter_specific_'+index, 'details encounter '+encounterTyp+' '+index+' '+index2, '', 'li encounter '+encounterTyp+' '+index+' '+index2, '');
-	createElement('summary', '', 'summary encounter '+encounterTyp+' '+index+' '+index2, '', 'details encounter '+encounterTyp+' '+index+' '+index2, '');
-
-	createCheckbox('summary encounter '+encounterTyp+' '+index+' '+index2, 'li encounter checkbox '+encounterTyp+' '+index+' '+index2, 'checkbox summary encounter '+encounterTyp+' '+index, 'isCheckboxChecked('+'\'li encounter checkbox ' +encounterTyp+' '+index+' '+index2 +'\',' +JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+')', content);
-	createElement('span', 'oi oi-zoom-in', 'span encounter '+encounterTyp+' '+index+' '+index2, 'cursor:pointer; margin-left: 5px;', 'summary encounter '+encounterTyp+' '+index+' '+index2, '');
-	document.getElementById('span encounter '+encounterTyp+' '+index+' '+index2).setAttribute('onclick', 'zoomIn('+JSON.stringify(maps.length-1)+','+JSON.stringify(layers.length-1)+','+JSON.stringify('li encounter checkbox '+encounterTyp+' '+index+' '+index2)+')');
-
-	createElement('ul', '', 'ul encounter '+encounterTyp+' '+index+' '+index2, '', 'details encounter '+encounterTyp+' '+index+' '+index2, '');
-}
-
-
-function isCheckboxChecked(id, mapIndex, layerIndex) {
-	var element = document.getElementById(id);
-	var map = maps[mapIndex];
-	var layer = layers[layerIndex];
-
-	if(element.checked){
-		// anzeigen des Elements
-		layer.addTo(map);
-
-		var elements = document.getElementsByClassName(element.className);
-		if (allCheckedEncounter(elements.length , elements)){
-			document.getElementById(element.className).checked = true;
-
-			var allCheckboxes = document.getElementsByClassName(document.getElementById(element.className).className);
-			if(allCheckedEncounter(allCheckboxes.length , allCheckboxes)){
-				document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked = true;
-			}
-		}
-	}
-	else{
-		layer.remove();
-
-		document.getElementById(element.className).checked=false;
-		document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked=false;
-	}
-}
-
-
-function zoomIn(mapIndex, layerIndex, checkboxId){
-	//bei Klick checkbox auf true setzen, damit auch etwas angezeigt wird
-	var checkbox = document.getElementById(checkboxId);
+/**
+* @desc zooms on an encounter
+* @param {number} mapIndex specifies the map
+* @param {number} layerIndex specifies the layer
+* @param {String} id specifies the checkbox
+*/
+function zoomIn(mapIndex, layerIndex, id){
+	// checked to true, so that it is guaranteed that the layer is displayed
+	var checkbox = document.getElementById(id);
 	checkbox.checked = true;
 	checkbox.onchange();
-	// Garantie, dass Layer angezeigt wird, wenn man darauf zoomt, andernfalls würde es keinen Sinn ergeben!
+
 	var map = maps[mapIndex];
 	var layer = layers[layerIndex];
 	map.flyToBounds(layer.getBounds());
 	layer.openPopup();
 }
 
-function createCheckbox(parentId, id, className,functionname, content){
+
+/**
+* @desc create a checkbox for an encounter
+* @param {String} parentId specifies the id of the parent-element, to get the parent-element to append the "child"
+* @param {String} id specifies the checkbox
+* @param {String} className specifies the class of the checkbox
+* @param {String} functionname specifies function of the checkbox, if it is changed
+* @param {String} content specifies the content of the label of the checkbox
+*/
+function createCheckbox(parentId, id, className, functionname, content){
 	var checkbox= document.createElement('input');
 	checkbox.id=id;
 	checkbox.type="checkbox";
@@ -565,31 +418,98 @@ function createCheckbox(parentId, id, className,functionname, content){
 
 
 /**
- * @desc swaps latitude and longitude and saves the result in a new array and returns it
- * @param {array} coordinates array with the coordinates (of the route)
- *	@return {array} coordinatesLatLng, array with the swaped coordinates of the route
- */
-function changeCoordinate(coordinates){
-	var coordinatesLatLng = [];
-	for(var i = 0; i < coordinates.length; i++){
-		coordinatesLatLng.push(L.latLng([coordinates[i][1], coordinates[i][0]]));
+* @desc checks if all encounter-checkboxes have the setting "checked === true"
+* @param {object} elements, input-elements with type "checkbox"
+* @return {boolean} allChecked: true, if all checkboxes are checked
+*/
+function allCheckedEncounter(elements){
+	var allChecked = true;
+	for(var i = 0; i < elements.length; i++){
+		if(elements[i].checked === false){
+			allChecked = false;
+		}
 	}
-	return coordinatesLatLng;
+	return allChecked;
 }
 
 
 /**
- * @desc creates and shows a map with the city Münster as center
- * @return {object} map
- */
-function createMap(id){
-	var map = L.map(id);
+* checks whether the given checkbox was checked or not
+* @param {String} id id of the checkbox
+*/
+function isCheckedEncounters(id){
+	var element = document.getElementById(id);
+	if (element.checked){
+		checkEncounters(element.id);
+	}
+	else{
+		uncheckEncounters(element.id);
+	}
+}
 
-	L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-		maxZoom: 18,
-		attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors",
-		id: "osm"
-	}).addTo(map);
 
-	return map;
+/**
+* @desc checks if the checkbox from an encounter is checked and shows or hides the corresponding layer accordingly
+* @param {String} id specifies the checkbox
+* @param {number} mapIndex specifies the map
+* @param {number} layerIndex specifies the layer
+*/
+function isCheckboxChecked(id, mapIndex, layerIndex) {
+	var element = document.getElementById(id);
+	var map = maps[mapIndex];
+	var layer = layers[layerIndex];
+
+	if(element.checked){
+		// show layer
+		layer.addTo(map);
+
+		var elements = document.getElementsByClassName(element.className);
+		if (allCheckedEncounter(elements)){
+			document.getElementById(element.className).checked = true;
+
+			var allCheckboxes = document.getElementsByClassName(document.getElementById(element.className).className);
+			if(allCheckedEncounter(allCheckboxes)){
+				document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked = true;
+			}
+		}
+	}
+	else{
+		// hide layer
+		layer.remove();
+
+		document.getElementById(element.className).checked=false;
+		document.getElementById(element.className.replace(/(me |others |animal )/,'')).checked=false;
+	}
+}
+
+
+/**
+* unchecked all specified checkboxes
+* @param {String} className specifies all checkboxes with class "className"
+*/
+function uncheckEncounters(className){
+	var elements = document.getElementsByClassName(className);
+	for (var i=0;i< elements.length;i++){
+		elements[i].checked=false;
+		elements[i].onchange();
+		if(elements[i].id.match(/encounter (me|others|animal)/)){
+			isCheckedEncounters(elements[i].id);
+		}
+	}
+}
+
+
+/**
+* checked all specified checkboxes
+* @param {String} className specifies all checkboxes with class "className"
+*/
+function checkEncounters(className){
+	var elements = document.getElementsByClassName(className);
+	for (var i=0;i< elements.length;i++){
+		elements[i].checked=true;
+		elements[i].onchange();
+		if(elements[i].id.match(/encounter (me|others|animal)/)){
+			isCheckedEncounters(elements[i].id);
+		}
+	}
 }
