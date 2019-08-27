@@ -27,7 +27,7 @@
 
     <% include partials/header.ejs %>
 
-    <main role="main" class="container-fluid">
+    <main id="all" role="main" class="container-fluid">
       <div class="row">
         <% include partials/message.ejs %>
         <div class="col-md-6" style="margin-top: 20px;">
@@ -62,7 +62,7 @@
             <div class="col-12" style="margin-top: 10px; margin-bottom: 44.2px;"> <!--20px(normal margin value) + 24.2px(height of the footer)-->
                 <label for="geojsontextareaOutput">Routen-Ausgabe:</label>
                 <textarea id="geojsontextareaOutput" type="text" readonly style="width: 100%; height: 112.1px;"></textarea>
-                <button onclick="isComplete('/route/update')" style="margin: 6px 5px 0px 0px">Route aktualisieren</button>
+                <button class="submitButton" onclick="isComplete('/route/update')" style="margin: 6px 5px 0px 0px">Route aktualisieren</button>
                 <button class="popup" onclick="copyText()" style="margin-top: 6px">
                   <span class="popuptext" id="myPopupOutput"></span>
                   Kopieren
@@ -92,6 +92,8 @@
 <script src="/jquery/jquery.min.js"></script>
 
 <script src="/bootstrap/js/bootstrap.min.js"></script>
+
+<script src="/javascripts/mousecursor.js"></script>
 
 <script src="/javascripts/map.js"></script>
 

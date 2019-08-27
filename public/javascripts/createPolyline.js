@@ -409,6 +409,9 @@ function isComplete(action){
       form.setAttribute('method', 'POST');
       form.setAttribute('action', action);
       form.submit();
+      // makes sure you can't click on anything
+      document.getElementById('all').style="pointer-events: none;";
+      window.changeCursor('wait');
     }
     else{
       throw "Es muss eine Route erstellt,\nsowie Angaben zum Typ, Namen und Beschreibung\ngemacht werden bevor die Route in der Datenbank abgespeichert werden kann.\n\nAnmerkung: Um ein valides GeoJson zu erstellen, bedarf es keiner Anführungszeichen!";

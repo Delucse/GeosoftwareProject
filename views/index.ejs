@@ -45,7 +45,7 @@
               <input type="text" name="sensor_type" value="" required/>
               <label>Individual Local Identifier</label>
               <input type="text" name="individual_local_identifier" value="" placeholder="Eingabe optional"/>
-              <button type="submit">Tier-Daten hinzufügen</button>
+              <button class="submitButton" type="submit" onclick="changeCursor('progress')">Tier-Daten hinzufügen</button>
             </form>
           </details>
         </div>
@@ -116,7 +116,7 @@
                         <th style="padding: 0px 0px 0px 2px;">
                           <form action="api/movebank/update" method="Post">
                             <input name="individual_taxon_canonical_name" type="text" hidden value="<%= animal[i] %>"/>
-                            <button class="btn-transparent" type="submit"><span class="oi oi-reload"></span></button>
+                            <button class="btn-transparent submitButton" onclick="changeCursor('progress') "type="submit"><span class="oi oi-reload" title="<%= animal[i] %> aktualisieren"></span></button>
                           </form></th></tr>
                         </table>
                       </label>
@@ -166,6 +166,8 @@
       <script src="/jquery/jquery.min.js"></script>
 
       <script src="/bootstrap/js/bootstrap.min.js"></script>
+
+      <script src="/javascripts/mousecursor.js"></script>
 
       <script src="/token/token.js"></script>
 
