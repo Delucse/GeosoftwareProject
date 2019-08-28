@@ -74,7 +74,7 @@ app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/l
 app.use('/turf', express.static(__dirname + '/node_modules/@turf/turf'));
 app.use('/token', express.static(__dirname + '/config'));
 app.use('/jsnlog', express.static(__dirname + 'node_modules', + 'jsnlog'));
-app.use(bodyParser.json());
+
 
 app.post("/jsnlog.logger", function (req, res) {
   jsnlog_nodejs(JL, req.body);
@@ -84,19 +84,20 @@ app.post("/jsnlog.logger", function (req, res) {
 // body parser middleware
 // parse application/x-www-form-urlencoded
 /*
-* sets the limit to 2MB:
+* sets the limit to 10MB:
 * now it is possible to load for example routes, that are very long without any error
-* (my tested maximum was 11359.36 km)
 */
-app.use(express.urlencoded({ extended: false, limit: '2mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 // parse application/json
 app.use(express.json());
+app.use(bodyParser.json());
+
 app.post('*.logger', function (req, res) {
   jsnlog_nodejs(JL, req.body);
-
   // Send empty response. This is ok, because client side jsnlog does not use response from server.
   res.send('');
 });
+
 // Express Validator Middleware
 // @see https://github.com/VojtaStavik/GetBack2Work-Node/blob/master/node_modules/express-validator/README.md
 app.use(validator({
@@ -119,7 +120,7 @@ app.use(validator({
 app.use(cookieParser());
 app.use(logger('dev'));
 
-var token = require('./config/token.js').token;
+var token = require('./config/token').token;
 
 // Express Session Middleware
 // @see https://github.com/expressjs/session

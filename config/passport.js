@@ -2,35 +2,54 @@
 // jshint node: true
 "use strict";
 
-// @see https://github.com/bradtraversy/nodekb/blob/master/config/passport.js
-const LocalStrategy = require('passport-local').Strategy;
-const User = require('../models/user');
+
+/**
+* @desc task 9 (project), Geosoft 1, SoSe 2019;
+* application for authentication
+*/
+
+
 const config = require('../config/database');
 const bcrypt = require('bcryptjs');
 
+// import local passport strategy
+const LocalStrategy = require('passport-local').Strategy;
+
+// import user model
+const User = require('../models/user');
+
+
+
+/**
+* @desc authenticates an user
+* @see https://github.com/bradtraversy/nodekb/blob/master/config/passport.js
+* @param {object} passport
+*/
 module.exports = function(passport){
   // Local Strategy
   passport.use(new LocalStrategy({
     passReqToCallback : true
   }, function(req, username, password, done){
-    // Match Username
+    // matches username
     let query = {username:username};
     User.findOne(query, function(err, user){
       if(err) throw err;
       if(!user){
+        // user does not exist
         return done(null, false, req.flash('message', { type: 'errorMsg',
                                                          msg: 'Authorisierung ist fehlgeschlagen.'
                                                       }));
       }
-
-      // Match Password
+      // match password
       bcrypt.compare(password, user.password, function(err, isMatch){
         if(err) throw err;
         if(isMatch){
           return done(null, user, req.flash('message', { type: 'successMsg',
                                                           msg: 'Sie haben sich erfolgreich angemeldet.'
                                                        }));
-        } else {
+        }
+        else {
+          // password does not match
           return done(null, false, req.flash('message', { type: 'errorMsg',
                                                            msg: 'Authorisierung ist fehlgeschlagen.'
                                                         }));

@@ -10,11 +10,18 @@
 */
 
 
+// hack to make "exports" available in the browser as globals and simultaneously usable for node.js
+if(typeof exports == "undefined"){
+  var exports = window;
+}
+
+
+
 /**
 * @desc creates and shows a map with the city Münster as center
 * @return {object} map
 */
- function createMap(id){
+ exports.createMap = function (id){
   var map = window.L.map(id).setView([51.9606649, 7.6261347], 11); // center of the map approximates the city Münster
 
   window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -24,7 +31,7 @@
   }).addTo(map);
 
   return map;
-}
+};
 
 
 /**
@@ -32,14 +39,13 @@
 * @param {array} coordinates array with the coordinates (of the route)
 *	@return {array} coordinatesLatLng, array with the swaped coordinates of the route
 */
- function changeCoordinate(coordinates){
+ exports.changeCoordinate = function(coordinates){
   var coordinatesLatLng = [];
   for(var i = 0; i < coordinates.length; i++){
     coordinatesLatLng.push(window.L.latLng([coordinates[i][1], coordinates[i][0]]));
   }
   return coordinatesLatLng;
-}
-
+};
 
 
 /**
@@ -47,7 +53,7 @@
 * @param {date} time
 * @return {string} prettyTime, time and date in a pretty way (day dd.mm.yyyy, hh:mm:ss)
 */
-function prettyTime(time){
+exports.prettyTime = function(time){
   var today = time;
   var day = today.getDate();
   // get the day of the week
@@ -66,6 +72,6 @@ function prettyTime(time){
       add0[i] = '0'+add0[i];
     }
   }
-  var prettyTime = weekday[dayNumber]+' '+add0[0]+'.'+add0[1]+'.'+year+', '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr';
+  var prettyTime = weekday[dayNumber]+', den '+add0[0]+'.'+add0[1]+'.'+year+' um '+add0[2]+':'+add0[3]+':'+add0[4]+' Uhr';
   return prettyTime;
-}
+};

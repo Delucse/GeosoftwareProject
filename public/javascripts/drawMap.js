@@ -168,7 +168,11 @@ function createInformation(weather, queryResultRoute, queryResultEncounter, enco
 		realEncounter = queryResultEncounter.realEncounterCompared;
 		changedValue = 'compared';
 	}
-	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
+	var contentLocation = '<b>ortsbezogene Informationen:</b><br>'+queryResultEncounter.location_info + '<br>';
+	if(queryResultEncounter.location_info !== 'keine ortsbezogenen Informationen abrufbar'){
+		contentLocation = '<b>ortsbezogene Informationen:</b><br>'+JSON.parse(queryResultEncounter.location_info);
+	}
+
 	if(specificEncounter){
 		// something else
 		if(realEncounter){

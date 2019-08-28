@@ -21,7 +21,7 @@ function changeCursor(cursor){
   // "wait" - just the clock
 
   // disables all submit-buttons
-  for(var i = 0; document.getElementsByClassName('submitButton').length; i++){
+  for(var i = 0; i < document.getElementsByClassName('submitButton').length; i++){
     document.getElementsByClassName('submitButton')[i].disabled = true;
   }
 }
