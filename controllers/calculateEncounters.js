@@ -43,9 +43,9 @@ exports.calculateEncounters = function(originalData, dataToCompare, encounterTyp
       var coordinates = [];
       var coordinatesOverlap = [];
       // calculates possible overlaps between the two routes (line1 and line2)
-      calculateOverlap(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      calculateOverlap(line1, line2, coordinates, coordinatesOverlap);
       // calculates possible intersections between the two routes (line1 and line2)
-      calculateIntersect(originalData, dataToCompare[j], line1, line2, coordinates, coordinatesOverlap);
+      calculateIntersect(line1, line2, coordinates, coordinatesOverlap);
       var id = [];
       // only store the real encounters, those who have not an empty coordinate-array
       if(coordinates.length > 0){
@@ -67,14 +67,12 @@ exports.calculateEncounters = function(originalData, dataToCompare, encounterTyp
 
 /**
 * @desc calculates the possible intersections between the "original route" and one other route
-* @param {object} originalData "original route", new or changed route
-* @param {object} dataToCompare one other route (except the original route)
 * @param {object} line1 original route in turf-syntax
 * @param {object} line2 other route in turf-syntax
 * @param {array} coordinates array, which stores the coordinates from the encounters
 * @param {array} coordinatesOverlap array, which stores the coordinates from the overlapping encounters
 */
-function calculateIntersect(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+function calculateIntersect(line1, line2, coordinates, coordinatesOverlap){
   // calculate the intersection
   var intersect = turf.lineIntersect(line1, line2);
   for(var i = 0; i < intersect.features.length; i++){
@@ -99,14 +97,12 @@ function calculateIntersect(originalData, dataToCompare, line1, line2, coordinat
 
 /**
 * @desc calculates the possible overlappings between the "original route" and one other route
-* @param {object} originalData "original route", new or changed route
-* @param {object} dataToCompare one other route (except the original route)
 * @param {object} line1 original route in turf-syntax
 * @param {object} line2 other route in turf-syntax
 * @param {array} coordinates array, which stores the coordinates from the encounters
 * @param {array} coordinatesOverlap array, which stores the coordinates from the overlapping encounters
 */
-function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates, coordinatesOverlap){
+function calculateOverlap(line1, line2, coordinates, coordinatesOverlap){
   // calculates the possible overlappings
   /*
   * comment: function works as desired only with "smaller" arrays, if the length exceeds 600,
@@ -118,13 +114,15 @@ function calculateOverlap(originalData, dataToCompare, line1, line2, coordinates
   var overlapping = turf.lineOverlap(line1, line2, {tolerance: 0.001}); // tolerance about 1 meters
   // if an overlapping exist, then check if it's a line
   if(overlapping.features.length > 0){
-    for(var i = 0; i < overlapping.features.length; i++){
-      var overlapSegment = turf.lineString(overlapping.features[i].geometry.coordinates);
+    // ensures that at most once (distinct) the same encounter between two routes is calculated
+    var uniqueOverlap = Array.from(new Set(overlapping.features));
+    for(var i = 0; i < uniqueOverlap.length; i++){
+      var overlapSegment = turf.lineString(uniqueOverlap[i].geometry.coordinates);
       var length = turf.length(overlapSegment, {units: 'kilometers'});
       // in turf it is possible to have a lineString out of exactly the same coordinates, normaly a point!
       if(length > 0){
-        coordinates.push(overlapping.features[i].geometry.coordinates);
-        coordinatesOverlap.push(overlapping.features[i].geometry.coordinates);
+        coordinates.push(uniqueOverlap[i].geometry.coordinates);
+        coordinatesOverlap.push(uniqueOverlap[i].geometry.coordinates);
       }
     }
   }
@@ -456,9 +454,9 @@ exports.createFeatureCollection = function(input){
   if(input.length > 0){
     var lineString = "";
     for(var i = 0; i < input.length-1; i++){
-      lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[i].id+'","date":"'+auxilaryFunction.prettyTime(input[i].date)+'","type":"'+input[i].type+'","name":"'+input[i].name+'","description":"'+input[i].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[i].coordinates)+'}},';
+      lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[i].id+'","date":"'+auxilaryFunction.prettyTime(new Date(input[i].date))+'","type":"'+input[i].type+'","name":"'+input[i].name+'","description":"'+input[i].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[i].coordinates)+'}},';
     }
-    lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[input.length-1].id+'","date":"'+auxilaryFunction.prettyTime(input[input.length-1].date)+'","type":"'+input[input.length-1].type+'","name":"'+input[input.length-1].name+'","description":"'+input[input.length-1].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[input.length-1].coordinates)+'}}';
+    lineString = lineString + '{"type":"Feature","properties":{"id":"'+input[input.length-1].id+'","date":"'+auxilaryFunction.prettyTime(new Date(input[input.length-1].date))+'","type":"'+input[input.length-1].type+'","name":"'+input[input.length-1].name+'","description":"'+input[input.length-1].description+'"},"geometry":{"type":"LineString","coordinates":'+JSON.stringify(input[input.length-1].coordinates)+'}}';
     featureCollection = '{"type":"FeatureCollection","features":['+lineString+']}';
   }
   return featureCollection;

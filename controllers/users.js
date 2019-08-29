@@ -196,7 +196,7 @@ exports.getOne = (req, res) => {
           lastName: user.lastName,
           email: user.email,
           id: user._id,
-          date: auxilaryFunction.prettyTime(user.date),
+          date: auxilaryFunction.prettyTime(new Date(user.date)),
           activity: route.length,
           message: req.flash('message')
         });
