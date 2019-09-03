@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
+const http = require("http");
 const https = require("https");
 //Test Packages
 var chai = require('chai');
 var chaiHttp = require('chai-http');
 var request = require('supertest');
 var agent = require('superagent');
-var nock = require('nock');
 //Assertions
 var should = chai.should();
 var expect = chai.expect;
@@ -18,9 +18,6 @@ const Animal = require('../models/animal');
 const encounterAnimal = require('../models/encounterAnimal');
 const encounterUser = require('../models/encounterUser');
 const token = require('../config/token.js').token;
-
-//TODO weiß nicht ob das benötigt wird
-const response = require('./response.js');
 
 chai.use(chaiHttp);
 
@@ -50,14 +47,13 @@ const testroute = {
 var routeid;
 //die userid soll die ID des eingeloggten Users speichern
 var userid;
-describe('Tests um Create von Routen und die damit zusammenhängende Begegnungserstellung zu testen', function() {
+describe('Tests zu Create von Routen', function() {
 
     before(function(done){
       authenticatedUser
         .post('/user/signup')
         .send(userCredentials)
         .end(function(err, res){
-          //TODO wenn der User in der finalen Version zuvor gelöscht wird muss es hier eine 200 Meldung geben
           expect(res.statusCode).to.equal(302);
           expect('Location', '/user/login');
           User.find({username: loginCredentials.username}).exec().then(testuser => {
@@ -71,6 +67,7 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
                   .end(function(err, res){
                       expect(res.statusCode).to.equal(302);
                       expect('Location', '/');
+
                     done();
                   });
 
@@ -91,7 +88,6 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
     });
     //Testet ob mit einem angemeldeten User eine Route in der Datenbank abgespeichert werden kann
     describe('Test auf Create und Delete', function() {
-        /**
         it('sollte keine Route anlegen, da die Eingabewerte nicht korrekt sind', function(done){
                     authenticatedUser.post('/route/create')
                     .send({
@@ -106,7 +102,6 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
                       });
                       done();
                     });
-                    **/
         it('sollte eine Route anlegen', function(done){
             authenticatedUser.post('/route/create/')
             .send(testroute)
@@ -115,51 +110,49 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
               res.should.have.status(302);
               res.body.should.be.a('object');
               Route.findOne({type: testroute.type, name: testroute.name, description: testroute.description}).exec().then(troute => {
-                console.log("die id der route", troute._id);
-                console.log("die route", troute);
                 routeid = troute._id;
                 done();
               });
             });
         });
-        /**
         it('sollte nichts löschen, da die Route ID nicht existiert', function(done) {
             var before;
             Route.find({userId: userid}).exec().then(troute => {
                 before = troute.length;
+                var after;
+                authenticatedUser
+                 .get('/route/delete/dieseIDgibtesnicht')
+                 .end(function(err, res){
+                   res.should.have.status(302);
+                   res.body.should.be.a('object');
+                   Route.find({userId: userid}).exec().then(troute => {
+                      after = troute.length;
+                      expect(before).to.equal(after);
+
+                      done();
+                      });
+                 });
             });
-            var after;
-            authenticatedUser
-             .get('/route/delete/dieseIDgibtesnicht')
-             .end(function(err, res){
-               res.should.have.status(302);
-               res.body.should.be.a('object');
-               Route.find({userId: userid}).exec().then(troute => {
-                  after = troute.length;
-                  expect(before).to.equal(after);
-                  done();
-                  });
-             });
+
         });
-        **/
         it('sollte die erstellte Route löschen', function(done) {
-                            console.log("die user id", userid);
-                            var before;
-                            Route.find({userId: userid}).exec().then(troute => {
-                                before = troute.length;
-                            });
-                            var after;
-                            authenticatedUser
-                             .get('/route/delete/' + routeid)
-                             .end(function(err, res){
-                                   res.should.have.status(302);
-                                   res.body.should.be.a('object');
-                                   Route.find({userId: userid}).exec().then(troute => {
-                                          after = troute.length;
-                                          expect(before).to.equal(after + 1);
-                                          done();
-                                          });
-                            });
+            var before;
+            Route.find({userId: userid}).exec().then(troute => {
+                before = troute.length;
+                var after;
+                authenticatedUser
+                 .get('/route/delete/' + routeid)
+                 .end(function(err, res){
+                       res.should.have.status(302);
+                       res.body.should.be.a('object');
+                       Route.find({userId: userid}).exec().then(troute => {
+                              after = troute.length;
+                              expect(before).to.equal(after + 1);
+                              done();
+                       });
+                });
+            });
+
         });
     });
     describe('Erzeugen von Begegnungen durch die Create Route', function() {
@@ -168,56 +161,32 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
                 var before;
                 encounterUser.find({userId: userid}).exec().then(tencounters => {
                     before = tencounters.length;
-                });
-                var after;
-                authenticatedUser.post('/route/create')
-                 .send({
-                   type: 'Planung',
-                   name: 'testroute1',
-                   description: 'justatest',
-                   geometry: '[[7.59624,51.96882],[7.5963,51.96881],[7.59637,51.9688],[7.59653,51.96877],[7.59655,51.96876],[7.59655,51.96876]]'
-                 })
-                 .expect('Location', '/route/manage/' + userid)
-                 .end(function(err, res){
-                     res.should.have.status(302);
-                     res.body.should.be.a('object');
-                     encounterUser.find({userId: userid}).exec().then(troute => {
-                         after = troute.length;
-                         expect(before).to.equal(after);
-                         done();
+                    var after;
+                    authenticatedUser.post('/route/create')
+                     .send({
+                       type: 'Planung',
+                       name: 'testroute1',
+                       description: 'justatest',
+                       geometry: '[[7.59624,51.96882],[7.5963,51.96881],[7.59637,51.9688],[7.59653,51.96877],[7.59655,51.96876],[7.59655,51.96876]]'
+                     })
+                     .expect('Location', '/route/manage/' + userid)
+                     .end(function(err, res){
+                         res.should.have.status(302);
+                         res.body.should.be.a('object');
+                         encounterUser.find({userId: userid}).exec().then(troute => {
+                             after = troute.length;
+                             expect(before).to.equal(after);
+                             done();
+                         });
                      });
-                 });
+                });
+
             });
-            it('hier sollte eine Begegnung mit testroute entstehen', function(done) {
-                //before und after ist die Anzahl der Begegnungen, vor und nach Anlegen der testroute2
+
+            it('sollte keine neuen Begegnungen mit maxmuster01 anlegen', function(done) {
                 var before;
                 encounterUser.find({userId: userid}).exec().then(tencounters => {
                     before = tencounters.length;
-                });
-                var after;
-                authenticatedUser.post('/route/create')
-                    .send({
-                      type: 'Planung',
-                      name: 'testroute2',
-                      description: 'justatest',
-                      geometry: '[[7.59638,51.96892],[7.59638,51.96888],[7.59637,51.9688],[7.59637,51.96875],[7.59637,51.96866],[7.59637,51.96866]]'
-                    })
-                    .expect('Location', '/route/manage/' + userid)
-                    .end(function(err, res){
-                        res.should.have.status(302);
-                        res.body.should.be.a('object');
-                        encounterUser.find({userId: userid}).exec().then(troute => {
-                            after = troute.length;
-                            expect(before).to.not.equal(after);
-                            done();
-                        });
-                    });
-            });
-            it('sollte keine neuen Begegnungen mit maxmuster01 anlegen', function(done) {
-                    var before;
-                    encounterUser.find({userId: userid}).exec().then(tencounters => {
-                        before = tencounters.length;
-                    });
                     var after;
                     authenticatedUser.post('/route/create')
                          .send({
@@ -236,104 +205,163 @@ describe('Tests um Create von Routen und die damit zusammenhängende Begegnungse
                                  done();
                              });
                          });
+                });
+
+            });
+            var before1;
+            it('sollte eine neue Route angelegt haben', function(done) {
+                //before und after ist die Anzahl der Begegnungen, vor und nach Anlegen der testroute2
+                encounterUser.find({userId: userid}).exec().then(findencounters => {
+                    before1 = findencounters.length;
+                });
+                authenticatedUser.post('/route/create')
+                    .send({
+                      type: 'Planung',
+                      name: 'testroute2',
+                      description: 'justatest',
+                      geometry: '[[7.59638,51.96892],[7.59638,51.96888],[7.59637,51.9688],[7.59637,51.96875],[7.59637,51.96866],[7.59637,51.96866]]'
+                    })
+                    .expect('Location', '/route/manage/' + userid)
+                    .end(function(err, res){
+                        res.should.have.status(302);
+                        done();
+                    });
+            });
+            it('sollte eine neue Begegnung erzeugt haben', function(done){
+                setTimeout(function(){
+                    var after;
+                    encounterUser.find({userId: userid}).exec().then(tencounters2 => {
+                        after = tencounters2.length;
+                        expect(before1).to.not.equal(after);
+                        done();
+                    });
+                }, 2000);
             });
     });
-/**
-    //TODO die APIS anbindungen testen
-    describe('Testen der APIs', function() {
-        describe('here API', function() {
-            var api, conn;
-              it('sollte erreichbar sein', (done) => {
-                // Try to connect:
-                Api.connect((error, new_api) => {
-                  if (error) {done(error);} else {
-                    api = new_api
-                    done();
-                  }
-                });
-              });
-        });
-        describe('movebank API', function() {
-            beforeEach(function(done) {
-                const testanimal = {
-                  study_id: "446579",
-                  individual_local_identifier: "1790 - Radolfzell JC72014",
-                  sensor_type: "gps"
-                };
-
-                nock("https://www.movebank.org", {
-                reqheaders: {
-                        'Authorization': 'Basic ' + Buffer.from(token.MOVEBANK_USERNAME + ':' + token.MOVEBANK_PASSWORD ).toString('base64')
-                    }})
-                .get("/movebank/service")
-                .send(testanimal)
-                //.get("/json-auth?&study_id=16880941&individual_local_identifiers[]=Mary&individual_local_identifiers[]=Butterball&individual_local_identifiers[]=Schaumboch&&max_events_per_individual=2000&sensor_type=gps")
-                .reply(200, response);
-                done();
-            });
-
-              it('sollte mit der API verbunden werden', (done) => {
-                return authenticatedUser
-                .post('/api/movebank')
-                .send(testanimal)
-                .end(function(response){
-                    expect(typeof response).to.equal('object');
-                    expect(response.individual_taxon_canonical_name).to.equal('Anas platyrhynchos')
-                  });
-              });
-
-                  /**
-                            it('falscher Test', (done) => {
-                              // Then try to authenticate:
-
-                              var endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id=16880941&individual_local_identifiers[]=Mary&individual_local_identifiers[]=Butterball&individual_local_identifiers[]=Schaumboch&&max_events_per_individual=2000&sensor_type=gps";
-                              var usernameMovebank = token.MOVEBANK_USERNAME;
-                              var passwordMovebank = token.MOVEBANK_PASSWORD;
-                              const options = {
-                                headers: {
-                                  'Authorization': 'Basic ' + Buffer.from(usernameMovebank + ':' + passwordMovebank).toString('base64')
-                                }
-                                  };
-
-                              https.get(endpoint, options, (httpResponse) => {
-                                var body = "";
-                                httpResponse.on("data", (chunk) => {
-                                  body += chunk;
-                                  done();
-                                });
-                               })
-                            });
-                              **/
-/**
-        });
-        describe('openweathermap API', function() {
-            var api, conn;
-              it('sollte erreichbar sein', (done) => {
-                // Try to connect:
-                Api.connect((error, new_api) => {
-                  if (error) {done(error);} else {
-                    api = new_api
-                    done();
-                  }
-                });
-              });
-
-              it('should authenticate properly', (done) => {
-                // Then try to authenticate:
-                api.authenticate(TEST_AUTH_CREDENTIALS, (error, new_conn) => {
-                  if (error) {done(error);} else {
-                    conn = new_conn;
-                    done();
-                  }
-                });
-              });
-
-        });
+    after( function(done){
+        setTimeout(function(){
+           // deletes possible user-encounters
+               encounterUser.deleteMany({$or: [{userId: userid}, {comparedTo: userid}]}).exec().then(encountersUser =>{
+                 // deletes possible animal-user-encounters
+                 encounterAnimal.deleteMany({$or: [{userId: userid}, {comparedTo: userid}]}).exec().then(encountersAnimal =>{
+                   // deletes possible routes from user
+                   Route.deleteMany({userId: userid}).exec().then(route => {
+                     // deletes the user
+                     User.deleteOne({_id: userid}).exec().then(result => {
+                     })
+                   })
+                 })
+               })
+           User.find({username: loginCredentials.username}).exec().then(testuser => {
+               expect(testuser.legnth).to.equal(undefined);
+               done();
+           });
+       }, 5000);
     });
-    /**
-    after(function() {
-        //TODO den User lösche, damit sollten dann alles anhängende gelöscht werden
-                 User.find({username: username}).remove().exec();
-    });
-    **/
 });
+describe('Testen der APIs', function() {
+    describe('here API', function() {
+          it('sollte mit der here API verbinden', (done) => {
+              var endpointHere = 'https://places.demo.api.here.com/places/v1/discover/explore?at=7.59624,51.96882&cat=sights-museums&size=5&app_id='+token.HERE_APP_ID_TOKEN+'&app_code='+token.HERE_APP_CODE_TOKEN;
+              // movebank query
+              var request = https.get(endpointHere,  (httpResponse) => {
+                // concatenate updates from datastream
+                var body = "";
+                httpResponse.on("data", (chunk) => {
+                  body += chunk;
+                });
+                httpResponse.on("end", () => {
+                  try{
+                    // if the response is not json, than the URL was wrong (catch-block)
+                    var hereData = JSON.parse(body);
+                    expect(typeof hereData).to.equal('object');
+                    done();
+                  }
+                  catch(err){
+                    //eine Falsche aussage um den Test fehlschlagen zu lassen
+                      expect(true).to.equal(false);
+                      done();
+                  }
+                });
+              });
+                request.on("error", (error) => {
+                  //eine Falsche aussage um den Test fehlschlagen zu lassen
+                  expect(true).to.equal(false);
+                  done();
+                });
+
+              });
+    });
+    describe('movebank API', function() {
+          it('sollte mit der movebank API verbinden', function(done) {
+                      var endpoint = "https://www.movebank.org/movebank/service/json-auth?&study_id=446579&individual_local_identifiers[]=1790 - Radolfzell JC72014&sensor_type=gps";
+                      var username = token.MOVEBANK_USERNAME;
+                      var password = token.MOVEBANK_PASSWORD;
+                      // set authorization-header to get secured data
+                      const options = {
+                        headers: {
+                          'Authorization': 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
+                        }
+                      };
+                      // movebank query
+                      var request = https.get(endpoint, options, (httpResponse) => {
+                        // concatenate updates from datastream
+                        var body = "";
+                        httpResponse.on("data", (chunk) => {
+                          body += chunk;
+                        });
+                        httpResponse.on("end", () => {
+                          try{
+                            // if the response is not json, than the URL was wrong (catch-block)
+                            var movebankData = JSON.parse(body);
+                            expect(typeof movebankData).to.equal('object');
+                            done();
+                          }
+                          catch(err){
+                            //eine Falsche aussage um den Test fehlschlagen zu lassen
+                              expect(true).to.equal(false);
+                              done();
+                          }
+                        });
+                      });
+                        request.on("error", (error) => {
+                          //eine Falsche aussage um den Test fehlschlagen zu lassen
+                          expect(true).to.equal(false);
+                          done();
+                        });
+        });
+    });
+    describe('openweathermap API', function() {
+          it('sollte mit der openweathermap API verbinden', (done) => {
+              var endpointOpenweather = "https://api.openweathermap.org/data/2.5/weather?lat=7.59624&lon=51.96882&units=metric&appid="+ token.OPENWEATHERMAP_TOKEN;
+               var request = https.get(endpointOpenweather, (httpResponse) => {
+                       // concatenate updates from datastream
+                       var body = "";
+                       httpResponse.on("data", (chunk) => {
+                         body += chunk;
+                       });
+                       httpResponse.on("end", () => {
+                            try{
+                                // if the response is not json, than the URL was wrong (catch-block)
+                               var openweathermap = JSON.parse(body);
+                               expect(typeof openweathermap).to.equal('object');
+                               expect(openweathermap.cod).to.equal(200);
+                               done();
+                              }
+                              catch(err){
+                                //eine Falsche aussage um den Test fehlschlagen zu lassen
+                                  expect(true).to.equal(false);
+                                  done();
+                              }
+                            });
+               });
+               request.on("error", (error) => {
+                 //eine Falsche aussage um den Test fehlschlagen zu lassen
+                 expect(true).to.equal(false);
+                 done();
+               });
+          });
+    });
+});
+
+

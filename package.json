@@ -1,7 +1,10 @@
 {
   "name": "app",
+  "author": "Luc, Lukas, Phil",
   "version": "0.0.0",
   "main": "app.js",
+  "description": "this is the solution for the Geosoftware Project of Luc, Lukas and Phil",
+  "homepage": "https://github.com/Delucse/GeoSoftwareProject#readme",
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
@@ -36,8 +39,14 @@
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
     "mocha": "^6.2.0",
-    "nock": "^10.0.6",
     "superagent": "^5.1.0",
     "supertest": "^4.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Delucse/GeosoftwareProject.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Delucse/GeoSoftwareProject/issues"
   }
 }
