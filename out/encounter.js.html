@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: encounter.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: encounter.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// jshint esversion: 6
+// jshint node: true
+"use strict";
+
+
+/**
+* @desc task 9 (project), Geosoft 1, SoSe 2019;
+* application to retrieve a specfic encounter
+*/
+
+
+// import encounter models
+const EncounterUser = require('../models/encounterUser');
+const EncounterAnimal = require('../models/encounterAnimal');
+// import route model
+const Route = require('../models/route');
+
+
+
+/**
+* @desc retrieves a specific encounter and beloning route (called by the share-button)
+* @param {object} req request, containing information about the HTTP request
+* @param {object} res response, to send back the desired HTTP response
+*/
+exports.getEncounter = (req, res) => {
+  // checks the affiliation of the requested encounter
+  if(req.params.encounterType === 'others' || req.params.encounterType === 'me'){
+    // queries the specific user-encounter and the corresponding route
+    EncounterUser.find({_id: req.params.encounterId}).exec().then(query => {
+      Route.find({_id: req.params.routeId}).populate('userId', 'username').exec().then(route => {
+        res.render('encounter', {
+            title: 'geteilte Begegnung',
+            userRoutes: route,
+            encountersUser: query,
+            encountersAnimal: [],
+            message: req.flash('message')
+        });
+      })
+      .catch(err => {
+        req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler'});
+        res.redirect('/');
+      });
+    })
+    .catch(err => {
+      req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler'});
+      res.redirect('/');
+    });
+  }
+  else if(req.params.encounterType === 'animal'){
+    // queries the specific animal-user-encounter and the corresponding route
+    EncounterAnimal.find({_id: req.params.encounterId}).exec().then(query => {
+      Route.find({_id: req.params.routeId}).populate('userId', 'username').exec().then(route => {
+        res.render('encounter', {
+            title: 'geteilte Begegnung',
+            userRoutes: route,
+            encountersUser: [],
+            encountersAnimal: query,
+            message: req.flash('message')
+        });
+      })
+      .catch(err => {
+        req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler'});
+        res.redirect('/');
+      });
+    })
+    .catch(err => {
+      req.flash('message', {type: 'infoMsg', msg: 'Server-Fehler'});
+      res.redirect('/');
+    });
+  }
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#asyncLoopAnimals">asyncLoopAnimals</a></li><li><a href="global.html#asyncLoopEncounter">asyncLoopEncounter</a></li><li><a href="global.html#asyncLoopHTTPGet">asyncLoopHTTPGet</a></li><li><a href="global.html#calculateEncounters">calculateEncounters</a></li><li><a href="global.html#calculateIntersect">calculateIntersect</a></li><li><a href="global.html#calculateMidCoordinate">calculateMidCoordinate</a></li><li><a href="global.html#calculateOverlap">calculateOverlap</a></li><li><a href="global.html#createFeatureCollection">createFeatureCollection</a></li><li><a href="global.html#createMessages">createMessages</a></li><li><a href="global.html#createPrettyLocationInfo">createPrettyLocationInfo</a></li><li><a href="global.html#deleteEncounter">deleteEncounter</a></li><li><a href="global.html#EncounterAnimal">EncounterAnimal</a></li><li><a href="global.html#EncounterUser">EncounterUser</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#getCreate">getCreate</a></li><li><a href="global.html#getDelete">getDelete</a></li><li><a href="global.html#getEncounter">getEncounter</a></li><li><a href="global.html#getImpressum">getImpressum</a></li><li><a href="global.html#getIndex">getIndex</a></li><li><a href="global.html#getLogin">getLogin</a></li><li><a href="global.html#getLogout">getLogout</a></li><li><a href="global.html#getOne">getOne</a></li><li><a href="global.html#getSignup">getSignup</a></li><li><a href="global.html#getUpdate">getUpdate</a></li><li><a href="global.html#here">here</a></li><li><a href="global.html#https">https</a></li><li><a href="global.html#mongoose">mongoose</a></li><li><a href="global.html#newEncounter">newEncounter</a></li><li><a href="global.html#postCreate">postCreate</a></li><li><a href="global.html#postEncounterFilter">postEncounterFilter</a></li><li><a href="global.html#postEncounterUpdate">postEncounterUpdate</a></li><li><a href="global.html#postLogin">postLogin</a></li><li><a href="global.html#postMovebank">postMovebank</a></li><li><a href="global.html#postMovebankUpdate">postMovebankUpdate</a></li><li><a href="global.html#postSignup">postSignup</a></li><li><a href="global.html#postUpdate">postUpdate</a></li><li><a href="global.html#saveEncounter">saveEncounter</a></li><li><a href="global.html#updateEncounter">updateEncounter</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Thu Sep 05 2019 18:08:24 GMT+0200 (GMT+02:00)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,3 +1,6 @@
+// jshint esversion: 6
+// jshint node: true
+
 const mongoose = require('mongoose');
 const http = require("http");
 const https = require("https");
@@ -43,9 +46,9 @@ const testroute = {
     description: 'justatest',
     geometry: '[[7.59624,51.96882],[7.5963,51.96881],[7.59637,51.9688],[7.59653,51.96877],[7.59655,51.96876],[7.59655,51.96876]]'
 }
-//Die ID der angelgten Route
+//the ID of the created route
 var routeid;
-//die userid soll die ID des eingeloggten Users speichern
+//the userid saves the ID of the logged-in user
 var userid;
 describe('Tests zu Create von Routen', function() {
 
@@ -59,8 +62,8 @@ describe('Tests zu Create von Routen', function() {
           User.find({username: loginCredentials.username}).exec().then(testuser => {
             userid = testuser[0]._id;
 
-            //Den Testuser hier einloggen, um Funktionen testen zu können, die nur mit Login funktionieren
-            //der Login wird im authenticUser gespeichert und kann in anknuepfenden Tests verwendet werden
+            //logging in the user to test functions needing an authorizatino
+            //the login will be saved in authenticUser and can be used for the following tests
                authenticatedUser
                   .post('/user/login')
                   .send(loginCredentials)
@@ -74,7 +77,7 @@ describe('Tests zu Create von Routen', function() {
           });
         });
     });
-    //Test auf Funktionalitaet des Logins - /route/create hat einen authorizationCheck
+    //tests the function of the login - /route/create has an authorizationCheck
     describe('GET /route/create, um Anmeldung zu testen', function(done){
           it('sollte Status 200 zurückgeben und zur create Seite weiterleiten, wenn korrekt eingeloggt', function(done){
             authenticatedUser.get('/route/create')
@@ -86,7 +89,6 @@ describe('Tests zu Create von Routen', function() {
             .expect(302, done);
           });
     });
-    //Testet ob mit einem angemeldeten User eine Route in der Datenbank abgespeichert werden kann
     describe('Test auf Create und Delete', function() {
         it('sollte keine Route anlegen, da die Eingabewerte nicht korrekt sind', function(done){
                     authenticatedUser.post('/route/create')
@@ -349,14 +351,14 @@ describe('Testen der APIs', function() {
                                done();
                               }
                               catch(err){
-                                //eine Falsche aussage um den Test fehlschlagen zu lassen
+                                  //creates a wrong equation to fail the test
                                   expect(true).to.equal(false);
                                   done();
                               }
                             });
                });
                request.on("error", (error) => {
-                 //eine Falsche aussage um den Test fehlschlagen zu lassen
+                 //creates a wrong equation to fail the test
                  expect(true).to.equal(false);
                  done();
                });

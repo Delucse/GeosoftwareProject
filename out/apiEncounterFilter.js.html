@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: apiEncounterFilter.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: apiEncounterFilter.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// jshint esversion: 6
+// jshint node: true
+"use strict";
+
+
+/**
+* @desc task 9 (project), Geosoft 1, SoSe 2019;
+* application to filter the encounters
+*/
+
+
+// import encounter models
+const EncounterAnimal = require('../models/encounterAnimal');
+const EncounterUser = require('../models/encounterUser');
+// import route model
+const Route = require('../models/route');
+
+
+
+/**
+* @desc filters the encounters according to the parameters passed in the body
+* @param {object} req request, containing information about the HTTP request
+* @param {object} res response, to send back the desired HTTP response
+*/
+exports.postEncounterFilter = (req, res) => {
+
+  var bodyUser = JSON.parse(req.body.user);
+  var bodyAnimal = JSON.parse(req.body.animal);
+  var bodyReal = req.body.real;
+  var bodyType = req.body.type;
+  var bodyDate = req.body.date;
+
+  // encounters can only exist if at least one user or one animal is passed as parameter in the body
+  if(bodyAnimal.length === 0 &amp;&amp; bodyUser.length === 0){
+    res.json('Error');
+  }
+  else {
+
+    // creates the query for user-encounters for current user
+    var userId = '';
+    var userComparedTo = '';
+    if(bodyUser.length > 0){
+
+      for(var i = 0; i &lt; bodyUser.length-1; i++){
+        userId = userId + "{\"userId\":\""+bodyUser[i]+"\"},";
+        userComparedTo = userComparedTo + "{\"comparedTo\":\""+bodyUser[i]+"\"},";
+      }
+      userId = userId + "{\"userId\":\""+bodyUser[bodyUser.length-1]+"\"}";
+      userId = {$or:JSON.parse('['+userId+']')};
+      userComparedTo = userComparedTo + "{\"comparedTo\":\""+bodyUser[bodyUser.length-1]+"\"}";
+      userComparedTo = {$or:JSON.parse('['+userComparedTo+']')};
+    }
+    else {
+      userId = {userId:bodyUser};
+      userComparedTo = {comparedTo:bodyUser};
+    }
+
+    var user = {$or: [{$and:[{userId:req.body.currentUserId},userComparedTo]},{$and:[userId,{comparedTo:req.body.currentUserId}]}]};
+
+    // creates the query for animal-user-encounters for current user
+    var animalName = '';
+    if(bodyAnimal.length > 0){
+      for(var j = 0; j &lt; bodyAnimal.length-1; j++){
+        animalName = animalName + "{\"animal\":\""+bodyAnimal[j]+"\"},";
+      }
+      animalName = animalName + "{\"animal\":\""+bodyAnimal[bodyAnimal.length-1]+"\"}";
+      animalName = {$or:JSON.parse('['+animalName+']')};
+    }
+    else {
+      animalName = {animal:bodyAnimal};
+    }
+
+    var animal = {$and:[{comparedTo:req.body.currentUserId},animalName]};
+
+
+    var optionUser;
+    var optionAnimal;
+    var optionReal;
+    if(bodyReal){
+      optionReal = {$or: [{$and:[{userId:req.body.currentUserId},{realEncounter:bodyReal.replace(/"/g, '')}]},
+      {$and:[{comparedTo:req.body.currentUserId},{realEncounterCompared:bodyReal.replace(/"/g, '')}]}]};
+      optionUser = {$and:[optionReal, user]};
+      optionAnimal = {$and:[optionReal, animal]};
+    } else {
+      optionUser = user;
+      optionAnimal = animal;
+    }
+
+    // creates the query for the routes of current user
+    var optionRoute = {$and: [{userId: req.body.currentUserId}, {date: {$lte: bodyDate}}]};
+    if(bodyType){
+      optionRoute = {$and: [{type:bodyType.replace(/"/g, '')}, {userId: req.body.currentUserId}, {date: {$lt: bodyDate}}]};
+    }
+
+
+    Route.find(optionRoute).exec().then(userRoutes => {
+      // only if routes exist, encounters can exist too
+      if(userRoutes.length > 0){
+        EncounterUser.find(optionUser).exec().then(resultUserQuery => {
+          EncounterAnimal.find(optionAnimal).exec().then(resultAnimalQuery => {
+            var result = [];
+            result.push(resultUserQuery);
+            result.push(resultAnimalQuery);
+            result.push(userRoutes);
+            res.json(result);
+          })
+          .catch(err => {
+            res.json(err);
+          });
+        })
+        .catch(err => {
+          res.json(err);
+        });
+      }
+      else {
+        // no routes exist, so no encounter exist
+        res.json('Info');
+      }
+    })
+    .catch(err => {
+      res.json(err);
+    });
+  }
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#asyncLoopAnimals">asyncLoopAnimals</a></li><li><a href="global.html#asyncLoopEncounter">asyncLoopEncounter</a></li><li><a href="global.html#asyncLoopHTTPGet">asyncLoopHTTPGet</a></li><li><a href="global.html#calculateEncounters">calculateEncounters</a></li><li><a href="global.html#calculateIntersect">calculateIntersect</a></li><li><a href="global.html#calculateMidCoordinate">calculateMidCoordinate</a></li><li><a href="global.html#calculateOverlap">calculateOverlap</a></li><li><a href="global.html#createFeatureCollection">createFeatureCollection</a></li><li><a href="global.html#createMessages">createMessages</a></li><li><a href="global.html#createPrettyLocationInfo">createPrettyLocationInfo</a></li><li><a href="global.html#deleteEncounter">deleteEncounter</a></li><li><a href="global.html#EncounterAnimal">EncounterAnimal</a></li><li><a href="global.html#EncounterUser">EncounterUser</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#getCreate">getCreate</a></li><li><a href="global.html#getDelete">getDelete</a></li><li><a href="global.html#getEncounter">getEncounter</a></li><li><a href="global.html#getImpressum">getImpressum</a></li><li><a href="global.html#getIndex">getIndex</a></li><li><a href="global.html#getLogin">getLogin</a></li><li><a href="global.html#getLogout">getLogout</a></li><li><a href="global.html#getOne">getOne</a></li><li><a href="global.html#getSignup">getSignup</a></li><li><a href="global.html#getUpdate">getUpdate</a></li><li><a href="global.html#here">here</a></li><li><a href="global.html#https">https</a></li><li><a href="global.html#mongoose">mongoose</a></li><li><a href="global.html#newEncounter">newEncounter</a></li><li><a href="global.html#postCreate">postCreate</a></li><li><a href="global.html#postEncounterFilter">postEncounterFilter</a></li><li><a href="global.html#postEncounterUpdate">postEncounterUpdate</a></li><li><a href="global.html#postLogin">postLogin</a></li><li><a href="global.html#postMovebank">postMovebank</a></li><li><a href="global.html#postMovebankUpdate">postMovebankUpdate</a></li><li><a href="global.html#postSignup">postSignup</a></li><li><a href="global.html#postUpdate">postUpdate</a></li><li><a href="global.html#saveEncounter">saveEncounter</a></li><li><a href="global.html#updateEncounter">updateEncounter</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Thu Sep 05 2019 18:08:24 GMT+0200 (GMT+02:00)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
