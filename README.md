@@ -76,7 +76,7 @@ the generated HTML pages of the JSDoc documentation are located in [``JSDoc``](h
 ## Annotations
 * Phil made his Commits with InelliJ. He was linked to this repository, but his Commits does not count on his account. There must have been a mistake while work.
 So he made Commits not listed in the statistics.
-* We used the Leaflet Routing-Machine for our Creation of routes. For more information see [``JSDoc``](https://www.liedman.net/leaflet-routing-machine/). Thanks to Per Liedman.
+* We used the Leaflet Routing-Machine for our Creation of routes. For more information see [``here``](https://www.liedman.net/leaflet-routing-machine/). Thanks to Per Liedman.
 
 
 ## Task
