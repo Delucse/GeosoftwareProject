@@ -70,7 +70,7 @@ exports.token = {
 
 
 ## JSDoc
-the generated HTML pages of the JSDoc documentation are located in [``JSDoc``](../out)
+the generated HTML pages of the JSDoc documentation are located in [``JSDoc``](../master/out)
 
 
 ## Annotations
