@@ -70,7 +70,7 @@ exports.token = {
 
 
 ## JSDoc
-the generated HTML pages of the JSDoc documentation are located in [``JSDoc``](https://github.com/Delucse/GeosoftwareProject/tree/master/out)
+the generated HTML pages of the JSDoc documentation are located in [``JSDoc``](../out)
 
 
 ## Annotations
