@@ -73,13 +73,8 @@ app.use("/leaflet-routing-machine", express.static(__dirname + "/node_modules/le
 app.use("/leaflet-control-geocoder", express.static(__dirname + "/node_modules/leaflet-control-geocoder/dist"));
 app.use('/turf', express.static(__dirname + '/node_modules/@turf/turf'));
 app.use('/token', express.static(__dirname + '/config'));
-app.use('/jsnlog', express.static(__dirname + 'node_modules', + 'jsnlog'));
+app.use('/jsnlog', express.static(__dirname + "/node_modules/jsnlog"));
 
-
-app.post("/jsnlog.logger", function (req, res) {
-  jsnlog_nodejs(JL, req.body);
-  res.send('');
-});
 
 // body parser middleware
 // parse application/x-www-form-urlencoded
@@ -92,7 +87,8 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use(express.json());
 app.use(bodyParser.json());
 
-app.post('*.logger', function (req, res) {
+app.post('/jsnlog.logger', (req, res) => {
+  // req.body.lg[0].m to get only the message
   jsnlog_nodejs(JL, req.body);
   // Send empty response. This is ok, because client side jsnlog does not use response from server.
   res.send('');
@@ -103,8 +99,8 @@ app.post('*.logger', function (req, res) {
 app.use(validator({
   errorFormatter: function(param, msg, value) {
     var namespace = param.split('.'),
-    root    = namespace.shift(),
-    formParam = root;
+        root    = namespace.shift(),
+        formParam = root;
 
     while(namespace.length) {
       formParam += '[' + namespace.shift() + ']';
