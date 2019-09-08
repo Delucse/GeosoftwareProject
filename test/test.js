@@ -13,7 +13,7 @@ var agent = require('superagent');
 var should = chai.should();
 var expect = chai.expect;
 var assert = require('assert');
-//zum Testen benoetigte Dateien
+// needed files for testing
 var app = require('../app');
 const Route = require('../models/route');
 const User = require('../models/user');
@@ -34,18 +34,18 @@ const userCredentials = {
   username: 'maxmuster01',
   password: '123',
   confirmPassword: '123'
-}
+};
 //let's set up the data we need to pass to the login method
 const loginCredentials = {
   username: 'maxmuster01',
   password: '123'
-}
+};
 const testroute = {
     type: 'Planung',
     name: 'testroute',
     description: 'justatest',
     geometry: '[[7.59624,51.96882],[7.5963,51.96881],[7.59637,51.9688],[7.59653,51.96877],[7.59655,51.96876],[7.59655,51.96876]]'
-}
+};
 //the ID of the created route
 var routeid;
 //the userid saves the ID of the logged-in user
@@ -159,7 +159,7 @@ describe('Tests zu Create von Routen', function() {
     });
     describe('Erzeugen von Begegnungen durch die Create Route', function() {
              it('sollte keine Begegnung erzeugen, da nur eine Route angelegt wird', function(done) {
-                //before und after ist die Anzahl der Begegnungen, vor und nach Anlegen der testroute1
+                // "before" and "after" is the amount of the encounters, before and after creating the route "testroute1"
                 var before;
                 encounterUser.find({userId: userid}).exec().then(tencounters => {
                     before = tencounters.length;
@@ -212,7 +212,7 @@ describe('Tests zu Create von Routen', function() {
             });
             var before1;
             it('sollte eine neue Route angelegt haben', function(done) {
-                //before und after ist die Anzahl der Begegnungen, vor und nach Anlegen der testroute2
+                // "before" and "after" is the amount of the encounters, before and after creating the route "testroute2"
                 encounterUser.find({userId: userid}).exec().then(findencounters => {
                     before1 = findencounters.length;
                 });
@@ -250,10 +250,10 @@ describe('Tests zu Create von Routen', function() {
                    Route.deleteMany({userId: userid}).exec().then(route => {
                      // deletes the user
                      User.deleteOne({_id: userid}).exec().then(result => {
-                     })
-                   })
-                 })
-               })
+                     });
+                   });
+                 });
+               });
            User.find({username: loginCredentials.username}).exec().then(testuser => {
                expect(testuser.legnth).to.equal(undefined);
                done();

@@ -1,9 +1,10 @@
 {
   "name": "app",
   "author": "Luc, Lukas, Phil",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "main": "app.js",
   "description": "this is the solution for the Geosoftware Project of Luc, Lukas and Phil",
+  "license": "ISC",
   "homepage": "https://github.com/Delucse/GeoSoftwareProject#readme",
   "private": true,
   "scripts": {

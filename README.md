@@ -51,7 +51,9 @@ exports.token = {
 
 ## Starting without Docker:
 1. install [Node.js v10.xx](https://nodejs.org/en/) and [MongoDB v4.xx](https://www.mongodb.com/download-center/community?) on your local machine
-2. open shell and create MongoDB (on Windows: ``"C:\Program Files\MongoDB\Server\4.2\bin\mongod.exe" --dbpath="C:\path_to_GeosoftwareProject\data"``)
+2. open shell and create MongoDB
+   * on Windows: ``"C:\Program Files\MongoDB\Server\4.2\bin\mongod.exe" --dbpath="C:\path_to_GeosoftwareProject\data"``
+   * possible troubleshoot: use the downloaded ``data`` folder instead of the cloned folder
 3. open another shell and navigate to folder ``GeosoftwareProject``
 4. run ``npm install``
 5. run ``npm start``
