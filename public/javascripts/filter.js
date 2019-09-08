@@ -29,12 +29,18 @@ function ajaxCallFilter(){
 	var date = document.getElementById('datepicker').value;
 	var time = document.getElementById('timepicker').value;
 	if(date === '' || time === ''){
-		// the date- and time input field are required
-		var ok = window.confirm('Bitte tragen Sie das Datum und die Uhrzeit ein.\n\nFür das aktuelle Datum bestätigen Sie bitte mit "OK".');
-		if(ok){
-			// calculate the current time and filters the encounters
-			getCurrentTime();
-			ajaxCallFilter();
+		// Microsoft Edge does not allow the date and time fields to be automatically filled
+		// with values, so this must be handled separately.
+		if(window.navigator.userAgent.indexOf("Edge") !== -1){
+			window.alert('Bitte tragen Sie das Datum und die Uhrzeit ein.');
+		}
+		else {
+			var ok = window.confirm('Bitte tragen Sie das Datum und die Uhrzeit ein.\n\nFür das aktuelle Datum bestätigen Sie bitte mit "OK".');
+			if(ok){
+				// calculate the current time and filters the encounters
+				getCurrentTime();
+				ajaxCallFilter();
+			}
 		}
 	}
 	else {
