@@ -216,6 +216,17 @@ function editPolyline(map){
     }
   }).addTo(map);
 
+  // information about the error message and logged it to the server
+  routingControl.on('routingerror', function(output) {
+    if(output.error.status === "NoRoute"){
+      window.alert("Es konnte keine Route gefunden werden. Legen Sie einen anderen Start- bzw. Zielpunkt fest.");
+    }
+    else {
+      window.alert("Es konnte aktuell keine Route ermittelt werden. Probieren Sie es noch einmal.");
+    }
+    JL().info("An error occurred with the Leaflet Routing Machine: " + output.error.status);
+  });
+
   // updates the geojson text representation in the output-textarea, if all further information are given
   routingControl.on('routeselected', function(output) {
     currentRoute = output.route;
