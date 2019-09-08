@@ -34,33 +34,33 @@
 
 
 /**
-* @desc task 9 (project), Geosoft 1, SoSe 2019;
-* application for showing all encounters belonging to the current user
-*/
+ * @desc task 9 (project), Geosoft 1, SoSe 2019;
+ * application for showing all encounters belonging to the current user
+ */
 
 
 
 /**
-* @global layers, an array, which stores all encounters of the current user as layer
-*/
+ * @global layers, an array, which stores all encounters of the current user as layer
+ */
 var layers = [];
 
 /**
-* @global maps, an array, which stores all maps
-*/
+ * @global maps, an array, which stores all maps
+ */
 var maps = [];
 
 
 
 /**
-* @desc creates an HTML-element and appends it to another HTML-element
-* @param {String} elementName specifies HTML-element
-* @param {String} className specifies the class of the HTML-element
-* @param {String} id specifies the id of the the HTML-element
-* @param {String} style specifies the style of the HTML-element
-* @param {String} parentElementId specifies the id of the parent-element, to get the parent-element to append the "child"
-* @param {String} content specifies the content of the HTML-element
-*/
+ * @desc creates an HTML-element and appends it to another HTML-element
+ * @param {String} elementName specifies HTML-element
+ * @param {String} className specifies the class of the HTML-element
+ * @param {String} id specifies the id of the the HTML-element
+ * @param {String} style specifies the style of the HTML-element
+ * @param {String} parentElementId specifies the id of the parent-element, to get the parent-element to append the "child"
+ * @param {String} content specifies the content of the HTML-element
+ */
 function createElement(elementName, className, id, style, parentElementId, content){
 	var element = document.createElement(elementName);
 	element.setAttribute("class", className);
@@ -72,12 +72,12 @@ function createElement(elementName, className, id, style, parentElementId, conte
 
 
 /**
-* @desc create a map for the encounters which belongs to the route
-* @param {string} id the id of the route
-* @param {object} route transferred route
-* @param {object} map
-* @return {object} map
-*/
+ * @desc create a map for the encounters which belongs to the route
+ * @param {string} id the id of the route
+ * @param {object} route transferred route
+ * @param {object} map
+ * @return {object} map
+ */
 function createMapEncounters(id, route, map){
 	if(!(document.getElementById('row map '+id))){
 		createElement('div', 'row mapEncounter', 'row map '+id, "border-style: none none solid none; border-width: 1px;", 'encounters', '');
@@ -104,11 +104,11 @@ function createMapEncounters(id, route, map){
 
 
 /**
-* @desc creates the details and summary HTML-elements and the belonging checkbox for an encounter
-* @param {String} id the id of the route
-* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
-* @param {String} content innerHTML of the summary-HTML-element
-*/
+ * @desc creates the details and summary HTML-elements and the belonging checkbox for an encounter
+ * @param {String} id the id of the route
+ * @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+ * @param {String} content innerHTML of the summary-HTML-element
+ */
 function createDetailsEncounter(id, encounterTyp, content){
 	createElement('details', 'details_encounter_'+id, 'details encounter '+encounterTyp+' '+id, '', 'li encounter '+encounterTyp+' '+id, '');
 	createElement('summary', '', 'summary encounter '+encounterTyp+' '+id, '', 'details encounter '+encounterTyp+' '+id, '');
@@ -118,12 +118,12 @@ function createDetailsEncounter(id, encounterTyp, content){
 
 
 /**
-* @desc generate the content for popUp of the leaflet-layer
-* @param {object} queryResultEncounter transferred encounter
-* @param {object} queryResultRoute transferred route
-* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
-* @return {String} content
-*/
+ * @desc generate the content for popUp of the leaflet-layer
+ * @param {object} queryResultEncounter transferred encounter
+ * @param {object} queryResultRoute transferred route
+ * @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+ * @return {String} content
+ */
 function createContent(queryResultEncounter, queryResultRoute, encounterTyp){
 	var content;
 	if(encounterTyp === 'me'){
@@ -146,41 +146,42 @@ function createContent(queryResultEncounter, queryResultRoute, encounterTyp){
 
 
 /**
-* @desc retrieves weather data from OpenWeatherMap
-* @param {obejct} queryResultEncounter transferred encounter
-* @param {object} queryResultRoute transferred route
-* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
-* @param {String} id the id of the route
-* @param {number} index specified the index of the encounter of the specified route
-* @param {boolean} specificEncounter describes if it is a single encounter or not
-*/
+ * @desc retrieves weather data from OpenWeatherMap
+ * @param {obejct} queryResultEncounter transferred encounter
+ * @param {object} queryResultRoute transferred route
+ * @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+ * @param {String} id the id of the route
+ * @param {number} index specified the index of the encounter of the specified route
+ * @param {boolean} specificEncounter describes if it is a single encounter or not
+ */
 function ajaxOpenWeather(queryResultEncounter, queryResultRoute, encounterTyp, id, index, specificEncounter){
 	$.ajax({
 		url: 'https:api.openweathermap.org/data/2.5/weather?lat='+queryResultEncounter.midCoordinate[1]+'&amp;lon='+queryResultEncounter.midCoordinate[0]+'&amp;units=metric&amp;appid='+window.token.OPENWEATHERMAP_TOKEN,
 		type: 'GET',
 	})
-	.done (function(response) {
-		// parse + use data here
-		var openWeather = response.name+', '+response.main.temp+'°C, &lt;img src="http://openweathermap.org/img/w/'+response.weather[0].icon+'.png" title="'+response.weather[0].description+'">';
-		createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
-	})
-	.fail (function(xhr, status, errorThrown ) {
-		var openWeather = 'Im Moment stehen keine Wetterdaten zur Verfügung.';
-		createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
-	});
+		.done (function(response) {
+			// parse + use data here
+			var openWeather = response.name+', '+response.main.temp+'°C, &lt;img src="http://openweathermap.org/img/w/'+response.weather[0].icon+'.png" title="'+response.weather[0].description+'">';
+			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
+		})
+		.fail (function(xhr, status, errorThrown ) {
+			JL().warn("An error occurred with the OpenWeatherMap API: " + errorThrown);
+			var openWeather = 'Im Moment stehen keine Wetterdaten zur Verfügung.';
+			createInformation(openWeather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter);
+		});
 }
 
 
 /**
-* @desc generates the content that is displayed for each encounter
-* @param {String} weather weather data from OpenWeatherMap
-* @param {obejct} queryResultEncounter transferred encounter
-* @param {object} queryResultRoute transferred route
-* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
-* @param {String} id the id of the route
-* @param {number} index specified the index of the encounter of the specified route
-* @param {boolean} specificEncounter describes if it is a single encounter or not
-*/
+ * @desc generates the content that is displayed for each encounter
+ * @param {String} weather weather data from OpenWeatherMap
+ * @param {obejct} queryResultEncounter transferred encounter
+ * @param {object} queryResultRoute transferred route
+ * @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+ * @param {String} id the id of the route
+ * @param {number} index specified the index of the encounter of the specified route
+ * @param {boolean} specificEncounter describes if it is a single encounter or not
+ */
 function createInformation(weather, queryResultRoute, queryResultEncounter, encounterTyp, id, index, specificEncounter){
 
 	// checks which part from encounter belongs to the current route (original or compared Route?)
@@ -226,14 +227,14 @@ function createInformation(weather, queryResultRoute, queryResultEncounter, enco
 
 
 /**
-* @desc creates the layer of the encounter and bind a popUp
-* @param {object} map
-* @param {obejct} queryResultEncounter transferred encounter
-* @param {object} queryResultRoute transferred route
-* @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
-* @param {String} id the id of the route
-* @param {number} index specified the index of the encounter of the specified route
-*/
+ * @desc creates the layer of the encounter and bind a popUp
+ * @param {object} map
+ * @param {obejct} queryResultEncounter transferred encounter
+ * @param {object} queryResultRoute transferred route
+ * @param {String} encounterTyp specifies the encounter (self-encounter, user-user encounter, user-animal encounter)
+ * @param {String} id the id of the route
+ * @param {number} index specified the index of the encounter of the specified route
+ */
 function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encounterTyp, id, index){
 	var content = createContent(queryResultEncounter, queryResultRoute, encounterTyp);
 	var comparedRoute = queryResultEncounter.comparedRoute;
@@ -267,12 +268,12 @@ function drawEncountersOnMap(map, queryResultEncounter, queryResultRoute, encoun
 
 
 /**
-* @desc checks what kind of encounter it is and displays it together with information
-* @param {object} queryResultEncountersUser all user-encounters which belongs to the current user
-* @param {object} queryResultEncountersAnimal all user-animal-encounters which belongs to the current user
-* @param {object} queryResultRoute all routes which belongs to the current user
-* @param {boolean} specificEncounter describes if it is a single encounter or not
-*/
+ * @desc checks what kind of encounter it is and displays it together with information
+ * @param {object} queryResultEncountersUser all user-encounters which belongs to the current user
+ * @param {object} queryResultEncountersAnimal all user-animal-encounters which belongs to the current user
+ * @param {object} queryResultRoute all routes which belongs to the current user
+ * @param {boolean} specificEncounter describes if it is a single encounter or not
+ */
 function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, queryResultRoute, specificEncounter){
 
 	var encounterCount = queryResultEncountersUser.length + queryResultEncountersAnimal.length;
@@ -373,9 +374,9 @@ function drawEncounters(queryResultEncountersUser, queryResultEncountersAnimal, 
 
 
 /**
-* @desc scrolls to the specified HTML element and shows the information
-* @param {string} id id of the HTML element
-*/
+ * @desc scrolls to the specified HTML element and shows the information
+ * @param {string} id id of the HTML element
+ */
 function goTofurtherInformation(id){
 	var details1 = document.getElementById(id);
 	//closes all details1-elements
@@ -406,11 +407,11 @@ function goTofurtherInformation(id){
 
 
 /**
-* @desc zooms on an encounter
-* @param {number} mapIndex specifies the map
-* @param {number} layerIndex specifies the layer
-* @param {String} id specifies the checkbox
-*/
+ * @desc zooms on an encounter
+ * @param {number} mapIndex specifies the map
+ * @param {number} layerIndex specifies the layer
+ * @param {String} id specifies the checkbox
+ */
 function zoomIn(mapIndex, layerIndex, id){
 	// checked to true, so that it is guaranteed that the layer is displayed
 	var checkbox = document.getElementById(id);
@@ -425,13 +426,13 @@ function zoomIn(mapIndex, layerIndex, id){
 
 
 /**
-* @desc create a checkbox for an encounter
-* @param {String} parentId specifies the id of the parent-element, to get the parent-element to append the "child"
-* @param {String} id specifies the checkbox
-* @param {String} className specifies the class of the checkbox
-* @param {String} functionname specifies function of the checkbox, if it is changed
-* @param {String} content specifies the content of the label of the checkbox
-*/
+ * @desc create a checkbox for an encounter
+ * @param {String} parentId specifies the id of the parent-element, to get the parent-element to append the "child"
+ * @param {String} id specifies the checkbox
+ * @param {String} className specifies the class of the checkbox
+ * @param {String} functionname specifies function of the checkbox, if it is changed
+ * @param {String} content specifies the content of the label of the checkbox
+ */
 function createCheckbox(parentId, id, className, functionname, content){
 	var checkbox= document.createElement('input');
 	checkbox.id=id;
@@ -450,10 +451,10 @@ function createCheckbox(parentId, id, className, functionname, content){
 
 
 /**
-* @desc checks if all encounter-checkboxes have the setting "checked === true"
-* @param {object} elements, input-elements with type "checkbox"
-* @return {boolean} allChecked: true, if all checkboxes are checked
-*/
+ * @desc checks if all encounter-checkboxes have the setting "checked === true"
+ * @param {object} elements, input-elements with type "checkbox"
+ * @return {boolean} allChecked: true, if all checkboxes are checked
+ */
 function allCheckedEncounter(elements){
 	var allChecked = true;
 	for(var i = 0; i &lt; elements.length; i++){
@@ -466,9 +467,9 @@ function allCheckedEncounter(elements){
 
 
 /**
-* checks whether the given checkbox was checked or not
-* @param {String} id id of the checkbox
-*/
+ * checks whether the given checkbox was checked or not
+ * @param {String} id id of the checkbox
+ */
 function isCheckedEncounters(id){
 	var element = document.getElementById(id);
 	if (element.checked){
@@ -481,11 +482,11 @@ function isCheckedEncounters(id){
 
 
 /**
-* @desc checks if the checkbox from an encounter is checked and shows or hides the corresponding layer accordingly
-* @param {String} id specifies the checkbox
-* @param {number} mapIndex specifies the map
-* @param {number} layerIndex specifies the layer
-*/
+ * @desc checks if the checkbox from an encounter is checked and shows or hides the corresponding layer accordingly
+ * @param {String} id specifies the checkbox
+ * @param {number} mapIndex specifies the map
+ * @param {number} layerIndex specifies the layer
+ */
 function isCheckboxChecked(id, mapIndex, layerIndex) {
 	var element = document.getElementById(id);
 	var map = maps[mapIndex];
@@ -516,9 +517,9 @@ function isCheckboxChecked(id, mapIndex, layerIndex) {
 
 
 /**
-* unchecked all specified checkboxes
-* @param {String} className specifies all checkboxes with class "className"
-*/
+ * unchecked all specified checkboxes
+ * @param {String} className specifies all checkboxes with class "className"
+ */
 function uncheckEncounters(className){
 	var elements = document.getElementsByClassName(className);
 	for (var i=0;i&lt; elements.length;i++){
@@ -532,9 +533,9 @@ function uncheckEncounters(className){
 
 
 /**
-* checked all specified checkboxes
-* @param {String} className specifies all checkboxes with class "className"
-*/
+ * checked all specified checkboxes
+ * @param {String} className specifies all checkboxes with class "className"
+ */
 function checkEncounters(className){
 	var elements = document.getElementsByClassName(className);
 	for (var i=0;i&lt; elements.length;i++){
@@ -555,13 +556,13 @@ function checkEncounters(className){
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#ajaxCallFilter">ajaxCallFilter</a></li><li><a href="global.html#ajaxCallUpdate">ajaxCallUpdate</a></li><li><a href="global.html#ajaxOpenWeather">ajaxOpenWeather</a></li><li><a href="global.html#allChecked">allChecked</a></li><li><a href="global.html#allCheckedEncounter">allCheckedEncounter</a></li><li><a href="global.html#changeCoordinate">changeCoordinate</a></li><li><a href="global.html#changeCursor">changeCursor</a></li><li><a href="global.html#checkEncounters">checkEncounters</a></li><li><a href="global.html#copyText">copyText</a></li><li><a href="global.html#createButton">createButton</a></li><li><a href="global.html#createCheckbox">createCheckbox</a></li><li><a href="global.html#createContent">createContent</a></li><li><a href="global.html#createDetailsEncounter">createDetailsEncounter</a></li><li><a href="global.html#createElement">createElement</a></li><li><a href="global.html#createInformation">createInformation</a></li><li><a href="global.html#createMap">createMap</a></li><li><a href="global.html#createMapEncounters">createMapEncounters</a></li><li><a href="global.html#currentRoute">currentRoute</a></li><li><a href="global.html#deleteText">deleteText</a></li><li><a href="global.html#drawEncounters">drawEncounters</a></li><li><a href="global.html#drawEncountersOnMap">drawEncountersOnMap</a></li><li><a href="global.html#editAndShowPolyline">editAndShowPolyline</a></li><li><a href="global.html#editAndShowPolylineUpdate">editAndShowPolylineUpdate</a></li><li><a href="global.html#editExistingPolyline">editExistingPolyline</a></li><li><a href="global.html#editExistingPolylineUpdate">editExistingPolylineUpdate</a></li><li><a href="global.html#editPolyline">editPolyline</a></li><li><a href="global.html#geojson">geojson</a></li><li><a href="global.html#getCurrentTime">getCurrentTime</a></li><li><a href="global.html#getPolylineLeaflet">getPolylineLeaflet</a></li><li><a href="global.html#getTime">getTime</a></li><li><a href="global.html#goTofurtherInformation">goTofurtherInformation</a></li><li><a href="global.html#isCheckboxChecked">isCheckboxChecked</a></li><li><a href="global.html#isChecked">isChecked</a></li><li><a href="global.html#isCheckedEncounters">isCheckedEncounters</a></li><li><a href="global.html#isComplete">isComplete</a></li><li><a href="global.html#isGeoJSONLineString">isGeoJSONLineString</a></li><li><a href="global.html#layers">layers</a></li><li><a href="global.html#maps">maps</a></li><li><a href="global.html#popup">popup</a></li><li><a href="global.html#prettyTime">prettyTime</a></li><li><a href="global.html#routingControl">routingControl</a></li><li><a href="global.html#showNotValidGeoJSONPolyline">showNotValidGeoJSONPolyline</a></li><li><a href="global.html#uncheckEncounters">uncheckEncounters</a></li><li><a href="global.html#updateForm">updateForm</a></li><li><a href="global.html#updateText">updateText</a></li><li><a href="global.html#zoomIn">zoomIn</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#ajaxOpenWeather">ajaxOpenWeather</a></li><li><a href="global.html#allCheckedEncounter">allCheckedEncounter</a></li><li><a href="global.html#checkEncounters">checkEncounters</a></li><li><a href="global.html#createCheckbox">createCheckbox</a></li><li><a href="global.html#createContent">createContent</a></li><li><a href="global.html#createDetailsEncounter">createDetailsEncounter</a></li><li><a href="global.html#createElement">createElement</a></li><li><a href="global.html#createInformation">createInformation</a></li><li><a href="global.html#createMapEncounters">createMapEncounters</a></li><li><a href="global.html#drawEncounters">drawEncounters</a></li><li><a href="global.html#drawEncountersOnMap">drawEncountersOnMap</a></li><li><a href="global.html#goTofurtherInformation">goTofurtherInformation</a></li><li><a href="global.html#isCheckboxChecked">isCheckboxChecked</a></li><li><a href="global.html#isCheckedEncounters">isCheckedEncounters</a></li><li><a href="global.html#layers">layers</a></li><li><a href="global.html#maps">maps</a></li><li><a href="global.html#uncheckEncounters">uncheckEncounters</a></li><li><a href="global.html#zoomIn">zoomIn</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Thu Sep 05 2019 18:11:24 GMT+0200 (GMT+02:00)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Sep 08 2019 13:12:46 GMT+0200 (GMT+02:00)
 </footer>
 
 <script> prettyPrint(); </script>
