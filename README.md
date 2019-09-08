@@ -6,7 +6,7 @@ Development of the final project of the course "Geosoftware I" by Luc N., Phil H
 
 ## Getting Started
 
-1. Clone the GitHub Repository
+1. [Download](https://github.com/Delucse/GeosoftwareProject/archive/master.zip) or clone the GitHub Repository
 ``git clone https://github.com/Delucse/GeosoftwareProject``
 
 2. Create your own API-Tokens by getting registered on the websites below
@@ -33,12 +33,12 @@ exports.token = {
    HERE_APP_ID_TOKEN: "your here id token",
    HERE_APP_CODE_TOKEN: "your here code token",
    MOVEBANK_USERNAME: "your movebank username",
-   MOVEBANK_PASSWORD: "your movebank password.",
+   MOVEBANK_PASSWORD: "your movebank password",
    OPENWEATHERMAP_TOKEN: "your openweathermap token"
 };
 ```
 
-* info: [sample data](https://github.com/Delucse/GeosoftwareProject/blob/master/sampleData.txt) were created with the native MongoDB installation (version 4.2) (ggf. Link verändern)
+* info: [sample data](../master/sampleData.txt) in folder ``data`` were created with the native MongoDB installation (version 4.2)
 
 
 ## Starting with Docker:
@@ -51,7 +51,7 @@ exports.token = {
 
 ## Starting without Docker:
 1. install [Node.js v10.xx](https://nodejs.org/en/) and [MongoDB v4.xx](https://www.mongodb.com/download-center/community?) on your local machine
-2. open shell and create MongoDB ``"C:\Program Files\MongoDB\Server\4.0\bin\mongod.exe" --dbpath="C:\path_to_GeosoftwareProject\data"``
+2. open shell and create MongoDB (on Windows: ``"C:\Program Files\MongoDB\Server\4.2\bin\mongod.exe" --dbpath="C:\path_to_GeosoftwareProject\data"``)
 3. open another shell and navigate to folder ``GeosoftwareProject``
 4. run ``npm install``
 5. run ``npm start``
@@ -65,7 +65,7 @@ exports.token = {
 
 
 ## Running tests
-1. ensure that steps 1 - 4 of "Starting without Docker" are completed
+1. ensure that steps 1 - 4 of [Starting without Docker](../master/README.md#starting-without-docker) are completed
 2. run ``npm test``
 
 
