@@ -217,14 +217,15 @@ function editPolyline(map){
   }).addTo(map);
 
   // information about the error message and logged it to the server
+  // @see https://github.com/NJaku01/Aufgabe13_Niers_Stenkamp_Jakuschona/commit/52c95523a459231e8ae5d89a463c7cb1ab082cf7
   routingControl.on('routingerror', function(output) {
     if(output.error.status === "NoRoute"){
       window.alert("Es konnte keine Route gefunden werden. Legen Sie einen anderen Start- bzw. Zielpunkt fest.");
     }
     else {
       window.alert("Es konnte aktuell keine Route ermittelt werden. Probieren Sie es noch einmal.");
+      JL().info("An error occurred with the Leaflet Routing Machine: " + output.error.status);
     }
-    JL().info("An error occurred with the Leaflet Routing Machine: " + output.error.status);
   });
 
   // updates the geojson text representation in the output-textarea, if all further information are given
